@@ -1,4 +1,4 @@
--- Anti-bypass protection
+- Anti-bypass protection
 local ProtectionConfig = {
     SecretKey = "MortyHubSecret2026",
     HubName   = "Morty Hub"
