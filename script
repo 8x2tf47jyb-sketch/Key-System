@@ -1,0 +1,3202 @@
+-- Anti-bypass protection
+local ProtectionConfig = {
+    SecretKey = "MortyHubSecret2026",
+    HubName   = "Morty Hub"
+}
+
+if not _G[ProtectionConfig.SecretKey] then
+    local player = game:GetService("Players").LocalPlayer
+    if player then
+        player:Kick("\n🛡️ Unauthorized Execution\n\nPlease use the official Key System to run " .. ProtectionConfig.HubName)
+    end
+    return
+end
+
+-- 👇 Your entire Morty Hub code starts below 👇
+-- Morty69s UNIVERSAL HUB -LTM Scirpt
+
+local Players           = game:GetService("Players")
+local RunService        = game:GetService("RunService")
+local Lighting          = game:GetService("Lighting")
+local TeleportService   = game:GetService("TeleportService")
+local UserInputService  = game:GetService("UserInputService")
+local StarterGui        = game:GetService("StarterGui")
+local HttpService       = game:GetService("HttpService")
+local Workspace         = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Clipboard        = setclipboard or toclipboard or (syn and syn.copy)
+local getnilinstances  = getnilinstances or function() return {} end
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local mouse  = player:GetMouse()
+
+--REMOTES
+local Interaction        = ReplicatedStorage:WaitForChild("Interaction", 10)
+local dragRemote         = Interaction and Interaction:FindFirstChild("ClientIsDragging")
+local forceEndDragRemote = Interaction and Interaction:FindFirstChild("ForceEndDrag")
+
+local NPCDialog           = ReplicatedStorage:WaitForChild("NPCDialog", 10)
+local Regions             = ReplicatedStorage:WaitForChild("Regions", 10)
+local PlayerChatted       = NPCDialog and NPCDialog:WaitForChild("PlayerChatted", 5)
+local SetChattingValue    = NPCDialog and NPCDialog:WaitForChild("SetChattingValue", 5)
+local PromptChatEvent     = NPCDialog and NPCDialog:WaitForChild("PromptChat", 5)
+local ClientChangedRegion = Regions and Regions:WaitForChild("ClientChangedRegion", 5)
+
+local dragCounter = 0
+local function nextDragId()
+    dragCounter = dragCounter + 1
+    return dragCounter
+end
+
+local function GetAxe()
+    if player.Character and player.Character:FindFirstChild("Tool") then
+        return player.Character.Tool
+    end
+    return nil
+end
+
+--NOTIFICATION TOAST
+local notificationGui = Instance.new("ScreenGui")
+notificationGui.Name = "MortyNotificationGui"
+notificationGui.ResetOnSpawn = false
+notificationGui.IgnoreGuiInset = true
+notificationGui.DisplayOrder = 999999
+notificationGui.Parent = player:WaitForChild("PlayerGui")
+
+local notificationToast = Instance.new("Frame")
+notificationToast.Name = "AchievementToast"
+notificationToast.BackgroundColor3 = Color3.fromRGB(23, 28, 43)
+notificationToast.BackgroundTransparency = 0
+notificationToast.Visible = false
+notificationToast.AnchorPoint = Vector2.new(1, 1)
+notificationToast.Position = UDim2.new(1, -20, 1, -20)
+notificationToast.Size = UDim2.fromOffset(190, 75)
+notificationToast.ClipsDescendants = true
+notificationToast.Parent = notificationGui
+
+local notificationCorner = Instance.new("UICorner")
+notificationCorner.CornerRadius = UDim.new(0, 12)
+notificationCorner.Parent = notificationToast
+
+-- base blue stroke
+local notificationStroke = Instance.new("UIStroke")
+notificationStroke.Color = Color3.fromRGB(0, 0, 255)
+notificationStroke.Thickness = 2
+notificationStroke.Parent = notificationToast
+
+-- gradient that blends the stroke from bright white into blue
+local strokeGradient = Instance.new("UIGradient")
+strokeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.35, Color3.fromRGB(180, 215, 255)),
+    ColorSequenceKeypoint.new(0.70, Color3.fromRGB(40, 120, 255)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 40, 180)),
+})
+strokeGradient.Rotation = 90
+strokeGradient.Parent = notificationStroke
+
+-- soft outer glow so the white line "luminates" instead of just sitting there
+local notificationGlow = Instance.new("UIStroke")
+notificationGlow.Color = Color3.fromRGB(200, 225, 255)
+notificationGlow.Thickness = 6
+notificationGlow.Transparency = 0.85
+notificationGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+notificationGlow.Parent = notificationToast
+
+local glowGradient = Instance.new("UIGradient")
+glowGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(160, 200, 255)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 60, 255)),
+})
+glowGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0.00, 0.55),
+    NumberSequenceKeypoint.new(0.50, 0.85),
+    NumberSequenceKeypoint.new(1.00, 0.95),
+})
+glowGradient.Rotation = 90
+glowGradient.Parent = notificationGlow
+
+-- bright white lumination line along the top, fading to blue at the edges
+local notificationLume = Instance.new("Frame")
+notificationLume.Name = "LumeLine"
+notificationLume.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+notificationLume.BorderSizePixel = 0
+notificationLume.Size = UDim2.new(1, -20, 0, 1)
+notificationLume.Position = UDim2.new(0, 10, 0, 0)
+notificationLume.ZIndex = 4
+notificationLume.Parent = notificationToast
+
+local lumeGradient = Instance.new("UIGradient")
+lumeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 90, 255)),
+    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 90, 255)),
+})
+lumeGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0.00, 1),
+    NumberSequenceKeypoint.new(0.15, 0.35),
+    NumberSequenceKeypoint.new(0.50, 0),
+    NumberSequenceKeypoint.new(0.85, 0.35),
+    NumberSequenceKeypoint.new(1.00, 1),
+})
+lumeGradient.Parent = notificationLume
+
+-- thin soft glow directly under the lumination line for a "bloom" feel
+local notificationLumeGlow = Instance.new("Frame")
+notificationLumeGlow.Name = "LumeGlow"
+notificationLumeGlow.BackgroundColor3 = Color3.fromRGB(220, 235, 255)
+notificationLumeGlow.BorderSizePixel = 0
+notificationLumeGlow.Size = UDim2.new(1, -20, 0, 3)
+notificationLumeGlow.Position = UDim2.new(0, 10, 0, 0)
+notificationLumeGlow.ZIndex = 3
+notificationLumeGlow.BackgroundTransparency = 0.4
+notificationLumeGlow.Parent = notificationToast
+
+local lumeGlowGradient = Instance.new("UIGradient")
+lumeGlowGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 80, 255)),
+    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(200, 225, 255)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 80, 255)),
+})
+lumeGlowGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0.00, 1),
+    NumberSequenceKeypoint.new(0.50, 0.55),
+    NumberSequenceKeypoint.new(1.00, 1),
+})
+lumeGlowGradient.Parent = notificationLumeGlow
+
+local notificationImage = Instance.new("ImageLabel")
+notificationImage.Name = "ImageLabel4"
+notificationImage.BackgroundTransparency = 1
+notificationImage.Image = "rbxassetid://128805995116037"
+notificationImage.ScaleType = Enum.ScaleType.Fit
+notificationImage.ImageTransparency = 0
+notificationImage.Visible = true
+notificationImage.ZIndex = 3
+notificationImage.Position = UDim2.fromOffset(8, 18)
+notificationImage.Size = UDim2.fromOffset(40, 40)
+notificationImage.Parent = notificationToast
+
+local notificationKicker = Instance.new("TextLabel")
+notificationKicker.Name = "Kicker"
+notificationKicker.BackgroundTransparency = 1
+notificationKicker.Text = "Notification"
+notificationKicker.TextColor3 = Color3.fromRGB(255, 251, 0)
+notificationKicker.Font = Enum.Font.GothamBold
+notificationKicker.TextSize = 10
+notificationKicker.TextWrapped = true
+notificationKicker.TextXAlignment = Enum.TextXAlignment.Left
+notificationKicker.TextYAlignment = Enum.TextYAlignment.Top
+notificationKicker.Position = UDim2.fromOffset(56, 8)
+notificationKicker.Size = UDim2.fromOffset(126, 14)
+notificationKicker.ZIndex = 3
+notificationKicker.Parent = notificationToast
+
+local notificationTitle = Instance.new("TextLabel")
+notificationTitle.Name = "Title"
+notificationTitle.BackgroundTransparency = 1
+notificationTitle.Text = "MortyHub"
+notificationTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+notificationTitle.Font = Enum.Font.GothamBold
+notificationTitle.TextSize = 13
+notificationTitle.TextWrapped = true
+notificationTitle.TextXAlignment = Enum.TextXAlignment.Left
+notificationTitle.TextYAlignment = Enum.TextYAlignment.Top
+notificationTitle.Position = UDim2.fromOffset(56, 22)
+notificationTitle.Size = UDim2.fromOffset(126, 16)
+notificationTitle.ZIndex = 3
+notificationTitle.Parent = notificationToast
+
+local notificationText = Instance.new("TextLabel")
+notificationText.Name = "Text"
+notificationText.BackgroundTransparency = 1
+notificationText.Text = ""
+notificationText.TextColor3 = Color3.fromRGB(230, 235, 245)
+notificationText.Font = Enum.Font.Gotham
+notificationText.TextSize = 10
+notificationText.TextWrapped = true
+notificationText.TextXAlignment = Enum.TextXAlignment.Left
+notificationText.TextYAlignment = Enum.TextYAlignment.Top
+notificationText.Position = UDim2.fromOffset(56, 40)
+notificationText.Size = UDim2.fromOffset(126, 28)
+notificationText.ZIndex = 3
+notificationText.Parent = notificationToast
+
+local notificationToken = 0
+local function updateNotificationLayout()
+    notificationToast.Position = UDim2.new(1, -20, 1, -20)
+    notificationToast.Size = UDim2.fromOffset(190, 75)
+
+    notificationImage.Position = UDim2.fromOffset(8, 18)
+    notificationImage.Size     = UDim2.fromOffset(40, 40)
+
+    notificationKicker.Position = UDim2.fromOffset(56, 8)
+    notificationKicker.Size     = UDim2.fromOffset(126, 14)
+    notificationKicker.TextSize = 10
+
+    notificationTitle.Position = UDim2.fromOffset(56, 22)
+    notificationTitle.Size     = UDim2.fromOffset(126, 16)
+    notificationTitle.TextSize = 13
+
+    notificationText.Position = UDim2.fromOffset(56, 40)
+    notificationText.Size     = UDim2.fromOffset(126, 28)
+    notificationText.TextSize = 10
+
+    if notificationLume then
+        notificationLume.Size = UDim2.new(1, -20, 0, 1)
+        notificationLume.Position = UDim2.new(0, 10, 0, 0)
+    end
+    if notificationLumeGlow then
+        notificationLumeGlow.Size = UDim2.new(1, -20, 0, 3)
+        notificationLumeGlow.Position = UDim2.new(0, 10, 0, 0)
+    end
+end
+
+local notificationCameraConnection
+local function bindNotificationCamera()
+    if notificationCameraConnection then
+        notificationCameraConnection:Disconnect()
+        notificationCameraConnection = nil
+    end
+    local cam = workspace.CurrentCamera
+    if cam then
+        notificationCameraConnection = cam:GetPropertyChangedSignal("ViewportSize"):Connect(updateNotificationLayout)
+    end
+    updateNotificationLayout()
+end
+
+pcall(function()
+    game:GetService("ContentProvider"):PreloadAsync({notificationImage})
+end)
+
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(bindNotificationCamera)
+bindNotificationCamera()
+
+local function notify(title, text, dur)
+    notificationToken = notificationToken + 1
+    local token = notificationToken
+    notificationTitle.Text = tostring(title or "Notice")
+    notificationText.Text = tostring(text or "")
+    notificationToast.Visible = true
+
+    task.delay(tonumber(dur) or 4, function()
+        if token == notificationToken then
+            notificationToast.Visible = false
+        end
+    end)
+end
+
+local function safeDestroy(instance)
+    if instance and instance.Parent then
+        instance:Destroy()
+    end
+end
+
+local function safeSetNetworkOwner(part, owner)
+    if part then
+        pcall(function() part:SetNetworkOwner(owner) end)
+    end
+end
+
+local function restoreCharacterVelocity(hrp)
+    if not hrp then return end
+    pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end)
+    pcall(function() hrp.AssemblyAngularVelocity = Vector3.zero end)
+end
+
+local function equipToolByName(toolName)
+    if not toolName then return end
+    local backpack = player.Backpack and player.Backpack:FindFirstChild(toolName)
+    local char = player.Character
+    if backpack and char and char:FindFirstChild("Humanoid") then
+        pcall(function() char.Humanoid:EquipTool(backpack) end)
+    end
+end
+
+--SETTINGS
+local wSpeed, fSpeed, jPower = 16, 50, 50
+local spinSpeed = 1200
+local flying, spinning = false, false
+local dayLoop, fogLoop
+local spinConnection
+local teleportSpeed = 100
+local AutoSellWoodEnabled, AutoSellPlanksEnabled = false, false
+local TreeList = {}
+local ShopItemsList = {}
+
+-- CHANNEL / UPDATE LOG
+local CHANNEL_LOG = {
+    {
+        date = os.date("%Y-%m-%d"),
+        title = "Update1",
+        text = "Notification Layout Changed.",
+    },
+    {
+        date = os.date("%Y-%m-%d"),
+        title = "Update2",
+        text = "Notes Auto Translated,Note Auto-Teleport (not Working)",
+    },
+}
+
+--DISCORD WEBHOOK LOGGER (LTM)
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1538332569102319616/-Ltcb2L4u0oEiHPz4e10_WqgkBf0NJFdhrkjXsLdxPperMCH-4WSPgSjkPFsReAkp313"
+local WEBHOOK_NAME = "LT2"
+
+local function escapeJson(s)
+    if type(s) ~= "string" then return tostring(s) end
+    s = s:gsub("\\", "\\\\")
+    s = s:gsub('"', '\\"')
+    s = s:gsub("\n", "\\n")
+    s = s:gsub("\r", "\\r")
+    s = s:gsub("\t", "\\t")
+    return s
+end
+
+local function sendDiscordLog(username, userId, keyUsed, role, timeStr)
+    pcall(function()
+        local payload = {
+            username = WEBHOOK_NAME,
+            embeds = {
+                {
+                    title = "Morty Hub — Script Executed",
+                    color = (role == "admin") and 16711680 or 65280,
+                    fields = {
+                        {name = "Username",  value = escapeJson(username),  inline = true},
+                        {name = "Key Used",  value = escapeJson(keyUsed),   inline = true},
+                        {name = "User",      value = escapeJson(role),      inline = true},
+                        {name = "PlaceId",   value = escapeJson(tostring(game.PlaceId)), inline = true},
+                        {name = "JobId",     value = escapeJson(tostring(game.JobId)),   inline = true},
+                        {name = "Time",      value = escapeJson(timeStr),   inline = false},
+                    },
+                    footer = { text = "LTM Logger" },
+                    timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+                }
+            }
+        }
+        local json = HttpService:JSONEncode(payload)
+        local req = request or (syn and syn.request) or (http and http.request)
+        if not req then warn("[LTM] No HTTP library available"); return end
+        req({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = json,
+        })
+    end)
+end
+
+--KEY SYSTEM 
+local VALID_KEYS = {
+    ["Morty666"] = "admin",
+    ["Guest555"] = "guest",
+}
+
+local userRole = nil
+local isAdmin  = false
+local isGuest  = false
+
+local function requestKey()
+    local screen = Instance.new("ScreenGui")
+    screen.Name = "MortyKeySystem"
+    screen.ResetOnSpawn = false
+    screen.IgnoreGuiInset = true
+    screen.DisplayOrder = 100
+    screen.Parent = player:WaitForChild("PlayerGui")
+
+    local bg = Instance.new("Frame", screen)
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 0.4
+    bg.BorderSizePixel = 0
+
+    local win = Instance.new("Frame", screen)
+    win.Size = UDim2.new(0, 380, 0, 210)
+    win.Position = UDim2.new(0.5, -190, 0.5, -105)
+    win.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    win.BorderSizePixel = 0
+    Instance.new("UICorner", win).CornerRadius = UDim.new(0, 4)
+
+    local winStroke = Instance.new("UIStroke", win)
+    winStroke.Color = Color3.fromRGB(50, 50, 58)
+    winStroke.Thickness = 1
+
+    local bar = Instance.new("Frame", win)
+    bar.Size = UDim2.new(1, 0, 0, 32)
+    bar.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+    bar.BorderSizePixel = 0
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 4)
+
+    local barFix = Instance.new("Frame", bar)
+    barFix.Size = UDim2.new(1, 0, 0, 8)
+    barFix.Position = UDim2.new(0, 0, 1, -8)
+    barFix.BackgroundColor3 = Color3.fromRGB(28, 28, 34)
+    barFix.BorderSizePixel = 0
+
+    local grad = Instance.new("UIGradient", bar)
+    grad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 200, 120)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(60, 160, 90)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 60, 40)),
+    })
+    grad.Rotation = 0
+
+    local accent = Instance.new("Frame", bar)
+    accent.Size = UDim2.new(0, 60, 0, 2)
+    accent.Position = UDim2.new(0, 0, 1, -2)
+    accent.BackgroundColor3 = Color3.fromRGB(180, 255, 180)
+    accent.BorderSizePixel = 0
+    task.spawn(function()
+        while accent.Parent do
+            accent:TweenPosition(UDim2.new(1, -60, 1, -2), "InOut", "Sine", 1.6, true)
+            accent:TweenPosition(UDim2.new(0, 0, 1, -2), "InOut", "Sine", 1.6, true)
+            task.wait(0.05)
+        end
+    end)
+
+    local winTitle = Instance.new("TextLabel", bar)
+    winTitle.BackgroundTransparency = 1
+    winTitle.Size = UDim2.new(1, -16, 1, 0)
+    winTitle.Position = UDim2.new(0, 8, 0, 0)
+    winTitle.Text = "  Mortyhub Key  "
+    winTitle.TextColor3 = Color3.fromRGB(240, 245, 240)
+    winTitle.Font = Enum.Font.Code
+    winTitle.TextSize = 14
+    winTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+    local dot = Instance.new("Frame", bar)
+    dot.Size = UDim2.new(0, 8, 0, 8)
+    dot.Position = UDim2.new(1, -20, 0.5, -4)
+    dot.BackgroundColor3 = Color3.fromRGB(255, 90, 90)
+    dot.BorderSizePixel = 0
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+
+    local prompt = Instance.new("TextLabel", win)
+    prompt.BackgroundTransparency = 1
+    prompt.Size = UDim2.new(1, -32, 0, 20)
+    prompt.Position = UDim2.new(0, 16, 0, 46)
+    prompt.Text = "enter key to unlock the Script"
+    prompt.TextColor3 = Color3.fromRGB(160, 165, 175)
+    prompt.Font = Enum.Font.Code
+    prompt.TextSize = 13
+    prompt.TextXAlignment = Enum.TextXAlignment.Left
+
+    local box = Instance.new("TextBox", win)
+    box.Size = UDim2.new(1, -32, 0, 38)
+    box.Position = UDim2.new(0, 16, 0, 72)
+    box.BackgroundColor3 = Color3.fromRGB(14, 14, 17)
+    box.PlaceholderText = ""
+    box.Text = ""
+    box.TextColor3 = Color3.fromRGB(200, 255, 200)
+    box.Font = Enum.Font.Code
+    box.TextSize = 16
+    box.ClearTextOnFocus = false
+    box.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 3)
+    local boxStroke = Instance.new("UIStroke", box)
+    boxStroke.Color = Color3.fromRGB(60, 60, 68)
+    boxStroke.Thickness = 1
+    local boxPad = Instance.new("UIPadding", box)
+    boxPad.PaddingLeft = UDim.new(0, 10)
+    boxPad.PaddingRight = UDim.new(0, 10)
+
+    box:GetPropertyChangedSignal("Text"):Connect(function()
+        local text = box.Text or ""
+        if boxStroke then
+            boxStroke.Color = (#text > 0) and Color3.fromRGB(90, 160, 90) or Color3.fromRGB(60, 60, 68)
+        end
+    end)
+
+    local status = Instance.new("TextLabel", win)
+    status.BackgroundTransparency = 1
+    status.Size = UDim2.new(1, -32, 0, 16)
+    status.Position = UDim2.new(0, 16, 0, 116)
+    status.Text = ""
+    status.TextColor3 = Color3.fromRGB(255, 100, 100)
+    status.Font = Enum.Font.Code
+    status.TextSize = 12
+    status.TextXAlignment = Enum.TextXAlignment.Left
+
+    local submit = Instance.new("TextButton", win)
+    submit.Size = UDim2.new(0.5, -20, 0, 34)
+    submit.Position = UDim2.new(0, 16, 1, -50)
+    submit.BackgroundColor3 = Color3.fromRGB(50, 130, 70)
+    submit.Text = "unlock"
+    submit.TextColor3 = Color3.fromRGB(255, 255, 255)
+    submit.Font = Enum.Font.Code
+    submit.TextSize = 14
+    submit.AutoButtonColor = false
+    Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 3)
+    local subStroke = Instance.new("UIStroke", submit)
+    subStroke.Color = Color3.fromRGB(90, 190, 110)
+    subStroke.Thickness = 1
+
+    local quit = Instance.new("TextButton", win)
+    quit.Size = UDim2.new(0.5, -20, 0, 34)
+    quit.Position = UDim2.new(0.5, 4, 1, -50)
+    quit.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+    quit.Text = "cancel"
+    quit.TextColor3 = Color3.fromRGB(180, 180, 190)
+    quit.Font = Enum.Font.Code
+    quit.TextSize = 14
+    quit.AutoButtonColor = false
+    Instance.new("UICorner", quit).CornerRadius = UDim.new(0, 3)
+    local quitStroke = Instance.new("UIStroke", quit)
+    quitStroke.Color = Color3.fromRGB(70, 70, 78)
+    quitStroke.Thickness = 1
+
+    submit.MouseEnter:Connect(function() submit.BackgroundColor3 = Color3.fromRGB(60, 155, 85) end)
+    submit.MouseLeave:Connect(function() submit.BackgroundColor3 = Color3.fromRGB(50, 130, 70) end)
+    quit.MouseEnter:Connect(function() quit.BackgroundColor3 = Color3.fromRGB(50, 50, 60) end)
+    quit.MouseLeave:Connect(function() quit.BackgroundColor3 = Color3.fromRGB(35, 35, 42) end)
+
+    local dragging, dragStart, startPos
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = win.Position
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local d = input.Position - dragStart
+            win.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+        end
+    end)
+
+    local done = false
+
+    local function trySubmit()
+        local entered = (box.Text or ""):gsub("%s+", "")
+        local role = VALID_KEYS[entered]
+        if role then
+            userRole = role
+            isAdmin  = (role == "admin")
+            isGuest  = (role == "guest")
+
+            dot.BackgroundColor3 = Color3.fromRGB(120, 255, 120)
+            status.TextColor3 = Color3.fromRGB(120, 255, 120)
+            status.Text = "> key accepted (" .. role .. "). loading hub..."
+            boxStroke.Color = Color3.fromRGB(120, 255, 120)
+
+            sendDiscordLog(
+                player.Name,
+                tostring(player.UserId),
+                entered,
+                role,
+                os.date("%Y-%m-%d %H:%M:%S")
+            )
+
+            done = true
+            task.wait(0.7)
+            screen:Destroy()
+        else
+            dot.BackgroundColor3 = Color3.fromRGB(255, 90, 90)
+            status.TextColor3 = Color3.fromRGB(255, 90, 90)
+            status.Text = "> invalid key. try again."
+            boxStroke.Color = Color3.fromRGB(255, 90, 90)
+            box.Text = ""
+            task.wait(0.6)
+            if boxStroke then boxStroke.Color = Color3.fromRGB(60, 60, 68) end
+        end
+    end
+
+    submit.MouseButton1Click:Connect(trySubmit)
+    quit.MouseButton1Click:Connect(function()
+        box.Text = ""
+        status.Text = "> cancelled. re-enter key."
+    end)
+    box.FocusLost:Connect(function(enterPressed)
+        if enterPressed then trySubmit() end
+    end)
+
+    while not done do task.wait(0.1) end
+    return true
+end
+
+--SPAWN LOCATIONS
+local storeSpawns = {
+	{name = "Spawn", x = 179.88, y = 3.00, z = 29.11},
+	{name = "Fine Finds", x = 82.25, y = 3.12, z = -470.33},
+	{name = "General Lumber", x = 259.04, y = 3.20, z = 57.62},
+	{name = "Music Store", x = -426.63, y = 194.85, z = 1041.83},
+	{name = "Car Shop", x = 507.22, y = 4.00, z = -1470.10},
+	{name = "Links Logic", x = 4614.17, y = 7.00, z = -790.54},
+	{name = "Sally's Spooks", x = -1280.02, y = 131.65, z = -1469.40},
+	{name = "Null", x = 175.40, y = 12.20, z = -2641.29},
+	{name = "Fine Arts", x = 5230.97, y = -166.00, z = 717.11},
+	{name = "Stone R US", x = -2376.84, y = 305.41, z = -1893.39},
+	{name = "SeaSide", x = 6682.00, y = 1.00, z = -3558.82},
+	{name = "Hidden Room", x = -49.67, y = 60.55, z = 1414.90},
+	{name = "Magma Shop", x = -922.00, y = -247.00, z = 62.26},
+	{name = "Igloo", x = 2287.16, y = 255.21, z = 2970.35},
+	{name = "key spawn", x = -532.16, y = -86.71, z = -2036.31},
+	{name = "No Name Store", x = 183.76, y = 12.20, z = -2648.38},
+	{name = "Santa", x = -712.03, y = 270.90, z = -1889.92},
+	{name = "EyeBall *see Santa 1st*", x = -880.93, y = 229.80, z = 2084.19},
+}
+
+local treeSpawns = {
+	{name = "Black Trees", x = 6249.49, y = -0.41, z = -4291.50},
+	{name = "Star Trees", x = -7045.65, y = 408.77, z = 4824.23},
+	{name = "Spirit Trees", x = 218.42, y = -242.89, z = -2201.63},
+	{name = "Nuke Wood", x = 209.62, y = 14.20, z = -2755.01},
+	{name = "sinister wood", x = -165.04, y = -135.20, z = -2707.84},
+	{name = "Candy Cane Island", x = -345.73, y = 271.90, z = 2603.86},
+	{name = "Geck", x = 4081.13, y = -164.24, z = 764.26},
+}
+
+--HARD DRAGGER
+local hardDraggerActive = false
+local hardDraggerConnection, hardDraggerConnection2, hardDraggerLoop
+local hardDraggerStrength = 95000
+local canDragHooked = false
+local modifiedDraggers = {}
+local draggerRefreshTick = 0
+
+local function applyDraggerBoost(dragger)
+	if not dragger or not dragger:IsA("BasePart") then return end
+	local bp = dragger:FindFirstChild("BodyPosition")
+	if not bp then
+		bp = Instance.new("BodyPosition")
+		bp.Name = "BodyPosition"
+		pcall(function() bp.Parent = dragger end)
+	end
+	pcall(function()
+		bp.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+		bp.P = hardDraggerStrength
+		bp.D = 1000
+	end)
+	local bg = dragger:FindFirstChild("BodyGyro")
+	if not bg then
+		bg = Instance.new("BodyGyro")
+		bg.Name = "BodyGyro"
+		pcall(function() bg.Parent = dragger end)
+	end
+	pcall(function()
+		bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+		bg.P = hardDraggerStrength
+		bg.D = 1000
+	end)
+	dragger.Color = Color3.fromRGB(255, 20, 147)
+	dragger.CanCollide = false
+	dragger.Transparency = 0.4
+	pcall(function() dragger:SetNetworkOwner(player) end)
+	modifiedDraggers[dragger] = true
+end
+
+local function findDragger()
+	local c = {}
+	local w = Workspace:FindFirstChild("Dragger")
+	if w and w:IsA("BasePart") then table.insert(c, w) end
+	local gui = player:FindFirstChild("PlayerGui")
+	if gui then
+		local g = gui:FindFirstChild("ItemDraggingGUI")
+		if g then
+			local d = g:FindFirstChild("Dragger")
+			if d and d:IsA("BasePart") then table.insert(c, d) end
+		end
+	end
+	if #c == 0 then
+		for _, v in ipairs(getnilinstances()) do
+			if v.Name == "Dragger" and v:IsA("BasePart") then table.insert(c, v) end
+		end
+	end
+	return c
+end
+
+local function startHardDragger(silent)
+	if hardDraggerActive then return end
+	hardDraggerActive = true
+	if not canDragHooked then
+		pcall(function()
+			local ds = player.PlayerGui:FindFirstChild("ItemDraggingGUI") and player.PlayerGui.ItemDraggingGUI:FindFirstChild("Dragger")
+			if ds then
+				local env = getsenv(ds)
+				if env and env.canDrag then
+					hookfunction(env.canDrag, function() return true end)
+					canDragHooked = true
+				end
+			end
+		end)
+	end
+	for _, d in ipairs(findDragger()) do applyDraggerBoost(d) end
+
+	hardDraggerConnection = Workspace.ChildAdded:Connect(function(child)
+		if hardDraggerActive and child.Name == "Dragger" and child:IsA("BasePart") then
+			task.wait(0.05); applyDraggerBoost(child)
+		end
+	end)
+	local gui = player:FindFirstChild("PlayerGui")
+	if gui then
+		hardDraggerConnection2 = gui.ChildAdded:Connect(function(child)
+			if hardDraggerActive and child.Name == "ItemDraggingGUI" then
+				child.ChildAdded:Connect(function(gc)
+					if hardDraggerActive and gc.Name == "Dragger" and gc:IsA("BasePart") then
+						task.wait(0.05); applyDraggerBoost(gc)
+					end
+				end)
+			end
+		end)
+	end
+
+	hardDraggerLoop = RunService.Heartbeat:Connect(function()
+		if not hardDraggerActive then return end
+		draggerRefreshTick = draggerRefreshTick + 1
+		if draggerRefreshTick < 3 then return end
+		draggerRefreshTick = 0
+		for d in pairs(modifiedDraggers) do
+			if d and d.Parent then
+				local bp = d:FindFirstChild("BodyPosition")
+				if bp then bp.P = hardDraggerStrength end
+				local bg = d:FindFirstChild("BodyGyro")
+				if bg then bg.P = hardDraggerStrength end
+			else
+				modifiedDraggers[d] = nil
+			end
+		end
+	end)
+
+	if not silent then notify("Hard Dragger", "SUPER DRAG ON", 3) end
+end
+
+local function stopHardDragger(silent)
+	hardDraggerActive = false
+	if hardDraggerConnection then hardDraggerConnection:Disconnect(); hardDraggerConnection = nil end
+	if hardDraggerConnection2 then hardDraggerConnection2:Disconnect(); hardDraggerConnection2 = nil end
+	if hardDraggerLoop then hardDraggerLoop:Disconnect(); hardDraggerLoop = nil end
+	for d in pairs(modifiedDraggers) do
+		if d and d.Parent then
+			local bp = d:FindFirstChild("BodyPosition"); if bp then bp:Destroy() end
+			local bg = d:FindFirstChild("BodyGyro"); if bg then bg:Destroy() end
+			d.Color = Color3.new(1,1,1)
+			d.CanCollide = true
+			d.Transparency = 0
+		end
+	end
+	modifiedDraggers = {}
+	if not silent then notify("Hard Dragger", "OFF", 2) end
+end
+
+--ITEM TELEPORTER
+local selectedItems = {}
+local selectionMode = false
+local itemTPBusy    = false
+
+local function getItemModel(part)
+	if not part then return nil end
+	local model = part:FindFirstAncestorOfClass("Model")
+	if model then
+		if Players:GetPlayerFromCharacter(model) then return nil end
+		return model
+	end
+	if part:IsA("BasePart") then return part end
+	return nil
+end
+
+local function getTeleportTarget(item)
+	if not item then return nil, nil end
+	if item:IsA("BasePart") then return item, item end
+	local ws = item:FindFirstChild("WoodSection")
+	if ws and ws:IsA("BasePart") then return ws, item end
+	local main = item:FindFirstChild("Main")
+	if main and main:IsA("BasePart") then return main, item end
+	for _, p in ipairs(item:GetDescendants()) do
+		if p.Name == "WoodSection" and p:IsA("BasePart") then return p, item end
+	end
+	local any = item:FindFirstChildWhichIsA("BasePart", true)
+	if any and any.Name ~= "Leaves" and any.Name ~= "InnerWood" then return any, item end
+	return nil, nil
+end
+
+local function isPlank(root)
+	if not root then return false end
+	if root:GetAttribute("Type") == "Plank" then return true end
+	return root.Name:lower():find("plank") ~= nil or root:FindFirstChild("Plank") ~= nil
+end
+
+local function addHighlight(item)
+	if item:FindFirstChild("Morty_Highlight") then return end
+	local hl = Instance.new("Highlight")
+	hl.Name = "Morty_Highlight"
+	hl.FillColor = Color3.fromRGB(16, 52, 166)
+	hl.OutlineColor = Color3.fromRGB(152, 251, 152)
+	hl.FillTransparency = 0.01
+	hl.OutlineTransparency = 0.01
+	hl.Parent = item
+end
+
+local function removeHighlight(item)
+	local hl = item:FindFirstChild("Morty_Highlight"); if hl then hl:Destroy() end
+end
+
+local function clearSelection()
+	for _, item in ipairs(selectedItems) do removeHighlight(item) end
+	selectedItems = {}
+	notify("Item TP", "Selection cleared.", 2)
+end
+
+local function addToSelection(item, silent)
+	if not item or not item.Parent then return false end
+	for _, v in ipairs(selectedItems) do
+		if v == item then return false end
+	end
+	table.insert(selectedItems, item)
+	addHighlight(item)
+	if not silent then
+		notify("Item TP", "Added " .. item.Name .. " (" .. #selectedItems .. ")", 2)
+	end
+	return true
+end
+
+local function performTeleport(orientation)
+	orientation = orientation or "normal"
+	if itemTPBusy or #selectedItems == 0 then
+		if #selectedItems == 0 then notify("Item TP", "Nothing selected!", 4) end
+		return
+	end
+
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp or not dragRemote then
+		notify("Item TP", "Teleport system is not ready!", 3)
+		return
+	end
+
+	itemTPBusy = true
+	local wasActive = hardDraggerActive
+	if not wasActive then startHardDragger(true); task.wait(0.3) end
+
+	local speedFactor = math.max(0.01, teleportSpeed / 100)
+	local baseWait = math.max(0.015, 0.03 / speedFactor)
+	local maxRetries = math.clamp(math.floor(4 / speedFactor) + 1, 2, 6)
+	local oldCF = hrp.CFrame
+	local lookFlat = Vector3.new(oldCF.LookVector.X, 0, oldCF.LookVector.Z)
+	if lookFlat.Magnitude < 0.001 then lookFlat = Vector3.new(0, 0, -1) end
+	lookFlat = lookFlat.Unit
+	local rightFlat = Vector3.new(-lookFlat.Z, 0, lookFlat.X)
+	local successCount = 0
+	local total = #selectedItems
+	local itemsToKeep = {}
+	local placeIndex = 0
+
+	for _, item in ipairs(selectedItems) do
+		if not item or not item.Parent then continue end
+
+		local main, root = getTeleportTarget(item)
+		if not main or not root then
+			table.insert(itemsToKeep, item)
+			continue
+		end
+
+		placeIndex = placeIndex + 1
+		local side = ((placeIndex - 1) % 5) - 2
+		local targetPos = oldCF.Position + lookFlat * 4 + rightFlat * (side * 3) + Vector3.new(0, 1, 0)
+
+		local targetCF = CFrame.new(targetPos, targetPos + lookFlat)
+		if orientation == "sideways" then
+			targetCF = CFrame.fromMatrix(targetPos, rightFlat, Vector3.new(0, 1, 0), -lookFlat) * CFrame.Angles(0, 0, math.rad(90))
+		elseif orientation == "upwards" then
+			targetCF = CFrame.new(targetPos, targetPos + lookFlat) * CFrame.Angles(math.rad(-90), 0, 0)
+		elseif isPlank(root) then
+			targetCF = CFrame.new(targetPos, targetPos + lookFlat) * CFrame.Angles(math.rad(90), 0, 0)
+		end
+
+		local thisDragId = nextDragId()
+		local originalPos = main.Position
+		local moved = false
+
+		for attempt = 1, maxRetries do
+			if root:IsA("Model") then pcall(function() root.PrimaryPart = main end) end
+			pcall(function() main:SetNetworkOwner(player) end)
+			local wasAnchored = main.Anchored
+			main.Anchored = false
+
+			hrp.CFrame = main.CFrame
+			task.wait(baseWait)
+			pcall(function() dragRemote:FireServer("Begin", root, thisDragId) end)
+			task.wait(baseWait)
+			pcall(function() dragRemote:FireServer("Refresh", root, thisDragId) end)
+			task.wait(baseWait)
+
+			main.AssemblyLinearVelocity = Vector3.zero
+			main.AssemblyAngularVelocity = Vector3.zero
+
+			local draggerParts = findDragger()
+			for _ = 1, 8 do
+				if root:IsA("Model") then pcall(function() root.PrimaryPart = main; root:PivotTo(targetCF) end) end
+				main.CFrame = targetCF
+				for _, d in ipairs(draggerParts) do
+					if d and d.Parent then d.CFrame = targetCF end
+				end
+				pcall(function() dragRemote:FireServer("Refresh", root, thisDragId) end)
+				task.wait(baseWait)
+			end
+
+			for _ = 1, 4 do
+				pcall(function() dragRemote:FireServer("Refresh", root, thisDragId) end)
+				task.wait(baseWait)
+			end
+
+			for _ = 1, 3 do
+				pcall(function() dragRemote:FireServer("End", root, thisDragId) end)
+				if forceEndDragRemote then pcall(function() forceEndDragRemote:FireServer() end) end
+				task.wait(0.05)
+			end
+
+			for _, d in ipairs(findDragger()) do
+				if d and d.Parent then pcall(function() d:Destroy() end) end
+			end
+
+			task.wait(0.15)
+			main.Anchored = wasAnchored
+			main.AssemblyLinearVelocity = Vector3.zero
+			main.AssemblyAngularVelocity = Vector3.zero
+			pcall(function() main:SetNetworkOwner(nil) end)
+
+			if (main.Position - targetPos).Magnitude < 8 then
+				moved = true
+				break
+			end
+			task.wait(baseWait)
+		end
+
+		if moved then
+			successCount += 1
+			removeHighlight(item)
+		else
+			table.insert(itemsToKeep, item)
+		end
+	end
+
+	selectedItems = itemsToKeep
+	hrp.CFrame = oldCF
+	pcall(function()
+		hrp.AssemblyLinearVelocity = Vector3.zero
+		hrp.AssemblyAngularVelocity = Vector3.zero
+	end)
+	notify("Item TP", ("Teleported %d/%d items!"):format(successCount, total), 4)
+
+	if not wasActive then stopHardDragger(true) end
+	itemTPBusy = false
+end
+
+local function selectLookingAt()
+	if not selectionMode then return end
+	local target = mouse.Target
+	if not target then notify("Item TP", "Look at an item to select!", 2); return end
+	local model = getItemModel(target)
+	if not model then notify("Item TP", "Not a valid item!", 3); return end
+	for i, v in ipairs(selectedItems) do
+		if v == model then
+			removeHighlight(model)
+			table.remove(selectedItems, i)
+			notify("Deselected", model.Name .. " (" .. #selectedItems .. ")", 2)
+			return
+		end
+	end
+	table.insert(selectedItems, model)
+	addHighlight(model)
+	notify("Selected", model.Name .. " (" .. #selectedItems .. ")", 2)
+end
+
+--SPARKLES & EFFECTS
+local greenSparkles, purpleSparkles, fireEffect = nil, nil, nil
+local function toggleSparkles(colorType, state)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+	if colorType == "Green" then
+		if state then
+			if greenSparkles then greenSparkles:Destroy() end
+			greenSparkles = Instance.new("Sparkles", root)
+			greenSparkles.SparkleColor = Color3.new(0, 1, 0)
+		else
+			if greenSparkles then greenSparkles:Destroy(); greenSparkles = nil end
+		end
+	elseif colorType == "Purple" then
+		if state then
+			if purpleSparkles then purpleSparkles:Destroy() end
+			purpleSparkles = Instance.new("Sparkles", root)
+			purpleSparkles.SparkleColor = Color3.fromRGB(200, 0, 255)
+		else
+			if purpleSparkles then purpleSparkles:Destroy(); purpleSparkles = nil end
+		end
+	elseif colorType == "Fire" then
+		if state then
+			if fireEffect then fireEffect:Destroy() end
+			fireEffect = Instance.new("Fire", root)
+			fireEffect.Size = 8
+			fireEffect.Heat = 15
+			fireEffect.Color = Color3.fromRGB(255, 80, 0)
+		else
+			if fireEffect then fireEffect:Destroy(); fireEffect = nil end
+		end
+	end
+end
+
+--FOLLOW PLAYER TROLL
+local followTarget = nil
+local followConnection = nil
+local followSpin = 0
+
+local function stopFollow()
+	followTarget = nil
+	if followConnection then followConnection:Disconnect(); followConnection = nil end
+	notify("Follow Troll", "Stopped following", 2)
+end
+
+local function startFollow(targetPlayer)
+	if not targetPlayer then return end
+	followTarget = targetPlayer
+	if followConnection then followConnection:Disconnect() end
+	followConnection = RunService.Heartbeat:Connect(function(dt)
+		if not followTarget or not followTarget.Parent then
+			stopFollow()
+			return
+		end
+		local myChar = player.Character
+		local myHrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+		local tgtChar = followTarget.Character
+		local tgtHrp = tgtChar and tgtChar:FindFirstChild("HumanoidRootPart")
+		if myHrp and tgtHrp then
+			followSpin = followSpin + dt * 4
+			local tgtCF = tgtHrp.CFrame
+			local back = tgtCF.LookVector * -3
+			local side = tgtCF.RightVector * math.sin(followSpin) * 1.5
+			local pos = tgtCF.Position + back + side
+			myHrp.CFrame = CFrame.new(pos, tgtCF.Position)
+			myHrp.AssemblyLinearVelocity = Vector3.zero
+			myHrp.AssemblyAngularVelocity = Vector3.zero
+		end
+	end)
+	notify("Follow Troll", "Now following " .. targetPlayer.Name, 3)
+end
+
+--FLIGHT
+local function ToggleFly()
+	flying = not flying
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	local hum = char and char:FindFirstChild("Humanoid")
+	if not hrp or not hum then return end
+
+	if flying then
+		local BV = Instance.new("BodyVelocity")
+		BV.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+		BV.Name = "MortyFly"
+		BV.Velocity = Vector3.zero
+		BV.Parent = hrp
+		local BG = Instance.new("BodyGyro")
+		BG.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+		BG.Name = "MortyGyro"
+		BG.CFrame = hrp.CFrame
+		BG.Parent = hrp
+		task.spawn(function()
+			while flying and player.Character and hrp:FindFirstChild("MortyFly") do
+				local dir = Vector3.zero
+				if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camera.CFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camera.CFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camera.CFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
+				if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0, 1, 0) end
+				if dir.Magnitude > 0 then dir = dir.Unit end
+				BV.Velocity = dir * fSpeed
+				BG.CFrame = camera.CFrame
+				RunService.RenderStepped:Wait()
+			end
+			if BV and BV.Parent then BV:Destroy() end
+			if BG and BG.Parent then BG:Destroy() end
+		end)
+		notify("Fly", "ON (WASD + Space/Ctrl)", 3)
+	else
+		if hrp:FindFirstChild("MortyFly") then hrp.MortyFly:Destroy() end
+		if hrp:FindFirstChild("MortyGyro") then hrp.MortyGyro:Destroy() end
+		hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+		notify("Fly", "OFF", 2)
+	end
+end
+
+--BTOOLS 
+local deletedHistory = {}
+local deleteToolInstance = nil
+local undoToolInstance  = nil
+
+local function undoDelete()
+	if #deletedHistory > 0 then
+		local lastRecord = table.remove(deletedHistory)
+		if lastRecord and lastRecord.item then
+			lastRecord.item.Parent = lastRecord.parent
+			if lastRecord.item:IsA("BasePart") and lastRecord.cframe then
+				lastRecord.item.CFrame = lastRecord.cframe
+			end
+			notify("Btools", "Restored last deleted item!", 2)
+		end
+	else
+		notify("Btools", "Nothing to undo!", 2)
+	end
+end
+
+local function setBtoolsState(state)
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	local char = player.Character
+
+	if not state then
+		if deleteToolInstance then deleteToolInstance:Destroy(); deleteToolInstance = nil end
+		if undoToolInstance then undoToolInstance:Destroy(); undoToolInstance = nil end
+		if backpack then
+			for _, t in ipairs(backpack:GetChildren()) do
+				if t.Name == "delete" or t.Name == "undo" then t:Destroy() end
+			end
+		end
+		if char then
+			for _, t in ipairs(char:GetChildren()) do
+				if t.Name == "delete" or t.Name == "undo" then t:Destroy() end
+			end
+		end
+		notify("Btools", "Btools Disabled", 2)
+	else
+		if not backpack then return end
+		if deleteToolInstance then deleteToolInstance:Destroy() end
+		if undoToolInstance then undoToolInstance:Destroy() end
+
+		local hammer = Instance.new("Tool")
+		hammer.Name = "delete"
+		hammer.RequiresHandle = false
+		hammer.Activated:Connect(function()
+			local target = mouse.Target
+			if target then
+				local record = {
+					parent = target.Parent,
+					cframe = target:IsA("BasePart") and target.CFrame or nil,
+					item   = target:Clone()
+				}
+				table.insert(deletedHistory, record)
+				target:Destroy()
+				notify("Btools", "Delete Successful", 2)
+			end
+		end)
+		hammer.Parent = backpack
+		deleteToolInstance = hammer
+
+		local undoTool = Instance.new("Tool")
+		undoTool.Name = "undo"
+		undoTool.RequiresHandle = false
+		undoTool.Activated:Connect(function() undoDelete() end)
+		undoTool.Parent = backpack
+		undoToolInstance = undoTool
+
+		notify("Btools", "Btools & Undo Enabled", 3)
+	end
+end
+
+--WOOD/STORE 
+for a,b in pairs(Workspace:GetChildren()) do
+	if b.Name == "TreeRegion" then
+		b.ChildAdded:Connect(function(NewTree)
+			if NewTree and NewTree.Name == "Model" then table.insert(TreeList, NewTree) end
+		end)
+		for c,d in pairs(b:GetChildren()) do
+			if d.Name == "Model" then table.insert(TreeList, d) end
+		end
+	elseif b.Name == "Stores" then
+		for _, store in ipairs(b:GetChildren()) do
+			for _, item in ipairs(store:GetChildren()) do
+				if item.Name == "ShopItems" then
+					for _, shopItem in ipairs(item:GetChildren()) do
+						table.insert(ShopItemsList, shopItem)
+					end
+				end
+			end
+		end
+	end
+end
+
+--SELL FUNCTIONS
+local function sellWood()
+	local equippedTool = player.Character and player.Character:FindFirstChild("Tool")
+	local toolName = equippedTool and equippedTool.Name or nil
+	local axe = GetAxe()
+	if not axe then axe = equippedTool end
+	if not axe then return end
+
+	for _, Log in pairs(Workspace.LogModels:GetChildren()) do
+		if Log and Log.Name:sub(1,6) == "Loose_" and Log:FindFirstChild("Owner") then
+			if Log.Owner.Value == player then
+				local thisDragId = nextDragId()
+				for _, v in pairs(Log:GetChildren()) do
+					if v.Name == "WoodSection" then
+						safeSetNetworkOwner(v, player)
+						task.spawn(function()
+							for i=1,5 do
+								task.wait()
+								v.CFrame = CFrame.new(Vector3.new(315, -0.296, 85.791)) * CFrame.Angles(math.rad(90),0,0)
+							end
+						end)
+						task.spawn(function()
+							pcall(function() dragRemote:FireServer("Begin", Log, thisDragId) end)
+							for i=1,8 do
+								task.wait(0.03)
+								pcall(function() dragRemote:FireServer("Refresh", Log, thisDragId) end)
+							end
+							pcall(function() dragRemote:FireServer("End", Log, thisDragId) end)
+							if forceEndDragRemote then pcall(function() forceEndDragRemote:FireServer() end) end
+							safeSetNetworkOwner(v, nil)
+						end)
+					end
+				end
+			end
+		end
+	end
+
+	task.wait(1)
+	equipToolByName(toolName)
+end
+
+local function sellPlanks()
+	local equippedTool = player.Character and player.Character:FindFirstChild("Tool")
+	local toolName = equippedTool and equippedTool.Name or nil
+	local axe = GetAxe()
+	if not axe then axe = equippedTool end
+	if not axe then return end
+
+	for _, Plank in pairs(Workspace.PlayerModels:GetChildren()) do
+		if Plank and Plank.Name == "Plank" and Plank:FindFirstChild("Owner") then
+			if Plank.Owner.Value == player then
+				local thisDragId = nextDragId()
+				for _, v in pairs(Plank:GetChildren()) do
+					v.Name = "WoodSection"
+					safeSetNetworkOwner(v, player)
+					task.spawn(function()
+						for i=1,5 do
+							task.wait()
+							v.CFrame = CFrame.new(Vector3.new(315, -0.296, 85.791)) * CFrame.Angles(math.rad(90),0,0)
+						end
+					end)
+					task.spawn(function()
+						pcall(function() dragRemote:FireServer("Begin", Plank, thisDragId) end)
+						for i=1,8 do
+							task.wait(0.03)
+							pcall(function() dragRemote:FireServer("Refresh", Plank, thisDragId) end)
+						end
+						pcall(function() dragRemote:FireServer("End", Plank, thisDragId) end)
+						if forceEndDragRemote then pcall(function() forceEndDragRemote:FireServer() end) end
+						safeSetNetworkOwner(v, nil)
+					end)
+				end
+			end
+		end
+	end
+
+	task.wait(1)
+	equipToolByName(toolName)
+end
+
+--AUTO-BUY
+local LEARNED_IDS = {}
+if PromptChatEvent then
+	PromptChatEvent.OnClientEvent:Connect(function(flag, data)
+		if type(data) == "table" and data.ID and data.Name then
+			if LEARNED_IDS[data.Name] ~= data.ID then
+				LEARNED_IDS[data.Name] = data.ID
+				print(("[learn] NPC '%s' -> ID %d"):format(data.Name, data.ID))
+			end
+		end
+	end)
+end
+
+local PLATFORM_POSITIONS = {
+    Vector3.new(-224.300293, 60.532173, 940.311218),
+    Vector3.new(-232.909805, 60.532173, 933.248596),
+    Vector3.new(-242.128693, 60.532173, 925.139099),
+}
+
+--STORE COUNTER POSITIONS
+local STORE_OVERRIDES = {
+	WoodRUs          = { dropPos = Vector3.new(267.7461, 5.1980, 67.5408) },
+	PlantomicsChoice = { dropPos = Vector3.new(188.63209533691406, 15.199031829833984, -2662.11669921875) },
+	FineFinds        = { dropPos = Vector3.new(51.7468, 5.0983, -454.7091) },
+	StoneRUs         = { dropPos = Vector3.new(-2358.572998046875, 303.029296875, -1854.31591796875) },
+	SallysSeasonal   = { dropPos = Vector3.new(-1275.7313232421875, 133.9381561279297, -1478.2103271484375) },
+	FurnitureStore   = { dropPos = Vector3.new(477.7508850097656, 5.598018169403076, -1723.3367919921875) },
+	Igloo            = { dropPos = Vector3.new(2311.366943359375, 258.1778564453125, 2982.940185546875) },
+	CarStore         = { dropPos = Vector3.new(477.5735, 6.6151, -1475.2738) },
+	BlackMarket      = { dropPos = Vector3.new(-82.90166473388672, 62.843955993652344, 1408.02685546875) },
+	LogicStore       = { dropPos = Vector3.new(4594.8291015625, 9.39803695678711, -787.1132202148438) },
+	LinksLogic       = { dropPos = Vector3.new(4594.8291015625, 9.39803695678711, -787.1132202148438) },
+	SeaSide          = { dropPos = Vector3.new(6697.9102, 3.1980, -3563.1978) },
+	MusicStore       = { dropPos = Vector3.new(-411.719971, 196.438171, 1052.614136) },
+	TravelingTrader  = { dropPos = Vector3.new(-304.849518, 24.359137, -522.035767) },
+}
+
+local function getCDValue(item)
+    if not item then return nil end
+    local settings = item:FindFirstChild("Settings")
+    if settings then
+        local cd = settings:FindFirstChild("CD")
+        if cd and cd:IsA("StringValue") and cd.Value ~= "" then
+            return cd.Value
+        end
+    end
+    return nil
+end
+
+local ITEM_DROP_OVERRIDES = {
+    Swamp      = Vector3.new(-418.038300, 196.714935, 1044.577637),
+    Nightplaza = Vector3.new(-415.867371, 196.729584, 1043.310059),
+}
+
+local function getStoreTeleportData(storeName, item)
+    local override = STORE_OVERRIDES[storeName]
+    local cdValue = getCDValue(item)
+    local itemDrop = cdValue and ITEM_DROP_OVERRIDES[cdValue] or nil
+
+    return {
+        dropPos = itemDrop or (override and override.dropPos),
+        podiums = (override and override.podiums) or PLATFORM_POSITIONS,
+    }
+end
+
+local function getItemTeleportPosition(storeName, item, index)
+    local data = getStoreTeleportData(storeName, item)
+    local podiums = data.podiums or PLATFORM_POSITIONS
+    return podiums[((index - 1) % #podiums) + 1], data
+end
+
+local function getItemStoreName(item)
+    if not item then return nil end
+
+    local parent = item.Parent
+    while parent and parent ~= Workspace do
+        if STORE_OVERRIDES[parent.Name] then
+            return parent.Name
+        end
+        parent = parent.Parent
+    end
+
+    return nil
+end
+
+local SKIP_STORES   = { PlanterStore = true }
+local BUY_DELAY     = 0.3
+local HEIGHT_OFFSET = 3
+local PLACE_LIFT    = 0.05
+local OFF_COUNTER_NUDGE = 4
+
+local SHOP_REROLL_TIMEOUT = 6.0
+local SHOP_POLL_INTERVAL  = 0.15
+local SHOP_SETTLE_TIME    = 0.8
+
+local function placeItemAtBottom(item, dropPos)
+	if not item or not item.Parent then return end
+	if item:IsA("Model") then
+		local bboxCF, bboxSize = item:GetBoundingBox()
+		local targetCenter = Vector3.new(
+			dropPos.X,
+			dropPos.Y + bboxSize.Y / 2 + PLACE_LIFT,
+			dropPos.Z
+		)
+		local delta = targetCenter - bboxCF.Position
+		pcall(function() item:TranslateBy(delta) end)
+	else
+		local targetPos = Vector3.new(
+			dropPos.X,
+			dropPos.Y + item.Size.Y / 2 + PLACE_LIFT,
+			dropPos.Z
+		)
+		item.CFrame = CFrame.new(targetPos)
+	end
+end
+
+-- Drag-based move (same pipeline as Item TP) so server syncs and item stays movable
+local function dragMoveItemTo(item, targetPos)
+	if not item or not item.Parent or not dragRemote then return false end
+	local main, rootModel = getTeleportTarget(item)
+	if not main or not rootModel then return false end
+
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return false end
+
+	local targetCF = CFrame.new(targetPos)
+	if isPlank(rootModel) then
+		targetCF = targetCF * CFrame.Angles(math.rad(90), 0, 0)
+	end
+
+	local thisDragId = nextDragId()
+	local originalCF = hrp.CFrame
+	local wasAnchored = main.Anchored
+
+	if rootModel:IsA("Model") then pcall(function() rootModel.PrimaryPart = main end) end
+	pcall(function() main:SetNetworkOwner(player) end)
+	main.Anchored = false
+
+	hrp.CFrame = main.CFrame
+	task.wait(0.04)
+	pcall(function() dragRemote:FireServer("Begin", rootModel, thisDragId) end)
+	task.wait(0.04)
+	pcall(function() dragRemote:FireServer("Refresh", rootModel, thisDragId) end)
+	task.wait(0.04)
+
+	main.AssemblyLinearVelocity = Vector3.zero
+	main.AssemblyAngularVelocity = Vector3.zero
+
+	local draggerParts = findDragger()
+	for _ = 1, 10 do
+		if rootModel:IsA("Model") then
+			pcall(function() rootModel.PrimaryPart = main; rootModel:PivotTo(targetCF) end)
+		end
+		main.CFrame = targetCF
+		for _, d in ipairs(draggerParts) do
+			if d and d.Parent then d.CFrame = targetCF end
+		end
+		pcall(function() dragRemote:FireServer("Refresh", rootModel, thisDragId) end)
+		task.wait(0.03)
+	end
+
+	for _ = 1, 4 do
+		pcall(function() dragRemote:FireServer("Refresh", rootModel, thisDragId) end)
+		task.wait(0.03)
+	end
+
+	for _ = 1, 3 do
+		pcall(function() dragRemote:FireServer("End", rootModel, thisDragId) end)
+		if forceEndDragRemote then pcall(function() forceEndDragRemote:FireServer() end) end
+		task.wait(0.05)
+	end
+
+	for _, d in ipairs(findDragger()) do
+		if d and d.Parent then pcall(function() d:Destroy() end) end
+	end
+
+	task.wait(0.1)
+	main.Anchored = wasAnchored
+	main.AssemblyLinearVelocity = Vector3.zero
+	main.AssemblyAngularVelocity = Vector3.zero
+	pcall(function() main:SetNetworkOwner(nil) end)
+
+	hrp.CFrame = originalCF
+	pcall(function()
+		hrp.AssemblyLinearVelocity = Vector3.zero
+		hrp.AssemblyAngularVelocity = Vector3.zero
+	end)
+
+	return (main.Position - targetPos).Magnitude < 15
+end
+
+local function discoverStores()
+	local list = {}
+	local root = Workspace:FindFirstChild("Stores")
+	if not root then return list end
+
+	for _, folder in ipairs(root:GetChildren()) do
+		if SKIP_STORES[folder.Name] then continue end
+		local shop = folder:FindFirstChild("ShopItems")
+		if not shop then continue end
+
+		local npc
+		for _, child in ipairs(folder:GetChildren()) do
+			if child:FindFirstChild("Dialog") then npc = child; break end
+		end
+		if not npc then continue end
+
+		local override = STORE_OVERRIDES[folder.Name]
+		list[#list + 1] = {
+			storeName = folder.Name,
+			folder    = folder,
+			npc       = npc,
+			shop      = shop,
+			region    = "Store_" .. folder.Name,
+			dropPos   = override and override.dropPos,
+			podiums   = (override and override.podiums) or PLATFORM_POSITIONS,
+		}
+	end
+	return list
+end
+
+local function findShopItemByCDOrName(entry, target)
+	if not entry or not entry.shop or not target then return nil end
+	for _, c in ipairs(entry.shop:GetChildren()) do
+		if c:IsA("Model") and getCDValue(c) == target then
+			return c
+		end
+	end
+	for _, c in ipairs(entry.shop:GetChildren()) do
+		if c:IsA("Model") and c.Name == target then
+			return c
+		end
+	end
+	return nil
+end
+
+local function findCurrentShopItem(entry, target)
+	return findShopItemByCDOrName(entry, target)
+end
+
+local function waitForShopItem(entry, target, previous, timeout)
+	timeout = timeout or SHOP_REROLL_TIMEOUT
+	local t0 = os.clock()
+	task.wait(SHOP_SETTLE_TIME)
+	while os.clock() - t0 < timeout do
+		local current = findShopItemByCDOrName(entry, target)
+		if current and current ~= previous then
+			return current
+		end
+		task.wait(SHOP_POLL_INTERVAL)
+	end
+	return nil
+end
+
+local buyingStores = {}
+
+local function buyItem(entry, item, skipReturn)
+	if not entry or not item then return end
+
+	local char = player.Character
+	if not char then return end
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+	local startCF = root.CFrame
+
+	if not item.Parent or item.Parent ~= entry.shop then
+		local current = findCurrentShopItem(entry, item.Name)
+		if not current then
+			notify("AutoBuy", item.Name .. " no longer in shop", 2)
+			return
+		end
+		item = current
+	end
+
+	local itemPart = item:FindFirstChild("Main") or item.PrimaryPart
+	if not itemPart then warn(("[buy] %s has no Main"):format(item.Name)); return end
+
+	local npcId   = LEARNED_IDS[entry.npc.Name] or 0
+	local npcRoot = entry.npc:FindFirstChild("HumanoidRootPart") or entry.npc.PrimaryPart
+	if not npcRoot then warn(("[buy] %s has no NPC root"):format(entry.storeName)); return end
+	if not (dragRemote and ClientChangedRegion and PlayerChatted and SetChattingValue) then
+		notify("AutoBuy", "Missing remotes!", 3); return
+	end
+
+	local teleportData = getStoreTeleportData(entry.storeName, item)
+	local effectiveDropPos = teleportData.dropPos or entry.dropPos
+
+	local wasDraggerActive = hardDraggerActive
+	if not wasDraggerActive then
+		startHardDragger(true)
+		task.wait(0.25)
+	end
+
+	local counterPos = effectiveDropPos
+	if not counterPos then
+		counterPos = npcRoot.Position + Vector3.new(0, 0, -4)
+	else
+		counterPos = Vector3.new(counterPos.X, counterPos.Y + PLACE_LIFT, counterPos.Z)
+	end
+
+	root.CFrame = CFrame.new(itemPart.Position + Vector3.new(0, HEIGHT_OFFSET, 0))
+	task.wait(BUY_DELAY)
+
+	-- Item-TP style drag onto the counter (server-synced, stays movable)
+	local movedOk = dragMoveItemTo(item, counterPos)
+	if not movedOk then
+		placeItemAtBottom(item, counterPos)
+		local main = item:FindFirstChild("Main") or item.PrimaryPart
+		if main then
+			pcall(function() main.Anchored = false end)
+			pcall(function() main:SetNetworkOwner(nil) end)
+		end
+	end
+	task.wait(BUY_DELAY)
+
+	root.CFrame = CFrame.new(npcRoot.Position + Vector3.new(0, HEIGHT_OFFSET, 0))
+	task.wait(BUY_DELAY)
+
+	pcall(function() ClientChangedRegion:FireServer(entry.region) end)
+	task.wait(0.2)
+
+	local npcTbl = {ID = npcId, Character = entry.npc, Name = entry.npc.Name, Dialog = entry.npc.Dialog}
+	pcall(function() SetChattingValue:InvokeServer(1) end)
+	task.wait(0.2)
+	local ok, res = pcall(function() return PlayerChatted:InvokeServer(npcTbl, "Initiate") end)
+	print(("[buy] %s/%s initiate %s %s"):format(entry.storeName, item.Name, tostring(ok), tostring(res)))
+
+	pcall(function() SetChattingValue:InvokeServer(2) end)
+	task.wait(0.2)
+	ok, res = pcall(function() return PlayerChatted:InvokeServer(npcTbl, "ConfirmPurchase") end)
+	print(("[buy] %s/%s confirm %s %s"):format(entry.storeName, item.Name, tostring(ok), tostring(res)))
+
+	pcall(function() PlayerChatted:InvokeServer(npcTbl, "EndChat") end)
+	pcall(function() SetChattingValue:InvokeServer(0) end)
+	task.wait(0.6)
+
+	if selectionMode then
+		local added = addToSelection(item, true)
+		if added then
+			notify("Item TP", "Auto-selected " .. item.Name .. " (" .. #selectedItems .. ")", 2)
+		end
+	end
+
+	if effectiveDropPos and item and item.Parent then
+		local dir = effectiveDropPos - npcRoot.Position
+		dir = Vector3.new(dir.X, 0, dir.Z)
+		if dir.Magnitude > 0.001 then
+			dir = dir.Unit
+		else
+			dir = Vector3.new(0, 0, -1)
+		end
+		local offPos = effectiveDropPos + dir * OFF_COUNTER_NUDGE + Vector3.new(0, PLACE_LIFT, 0)
+		local nudged = dragMoveItemTo(item, offPos)
+		if not nudged then
+			pcall(function()
+				if item:IsA("Model") then
+					item:TranslateBy(dir * OFF_COUNTER_NUDGE)
+				elseif item:IsA("BasePart") then
+					item.CFrame = item.CFrame + dir * OFF_COUNTER_NUDGE
+				end
+			end)
+		end
+		local mainPart = item:FindFirstChild("Main") or item.PrimaryPart
+		if mainPart then
+			pcall(function() mainPart.Anchored = false end)
+			pcall(function() mainPart:SetNetworkOwner(nil) end)
+			pcall(function()
+				mainPart.AssemblyLinearVelocity = Vector3.zero
+				mainPart.AssemblyAngularVelocity = Vector3.zero
+			end)
+		end
+		task.wait(0.05)
+	end
+
+	if not skipReturn then
+		root.CFrame = startCF
+		task.wait(0.05)
+		pcall(function()
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
+		end)
+		print(("[buy] %s/%s confirmed; player returned home"):format(entry.storeName, item.Name))
+	else
+		print(("[buy] %s/%s confirmed; holding position"):format(entry.storeName, item.Name))
+	end
+
+	if not wasDraggerActive then
+		stopHardDragger(true)
+	end
+end
+
+local function returnHome(root, startCF)
+	if root and root.Parent and startCF then
+		root.CFrame = startCF
+		pcall(function()
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
+		end)
+	end
+end
+
+--INPUT HANDLER
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+
+	if input.KeyCode == Enum.KeyCode.E then
+		selectLookingAt()
+	elseif input.KeyCode == Enum.KeyCode.T then
+		performTeleport()
+	elseif input.KeyCode == Enum.KeyCode.C then
+		clearSelection()
+	elseif input.KeyCode == Enum.KeyCode.Q then
+		ToggleFly()
+	elseif input.UserInputType == Enum.UserInputType.MouseButton1 and selectionMode then
+		selectLookingAt()
+	end
+end)
+
+task.spawn(function()
+	while task.wait(0.2) do
+		pcall(function()
+			if player.Character and player.Character:FindFirstChild("Humanoid") then
+				local hum = player.Character.Humanoid
+				hum.WalkSpeed = wSpeed
+				hum.JumpPower = jPower
+				hum.UseJumpPower = true
+			end
+		end)
+	end
+end)
+
+local function teleportToSpawn(spawnPoint)
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then notify("Spawn Teleport", "Character not found!"); return end
+	hrp.CFrame = CFrame.new(Vector3.new(spawnPoint.x, spawnPoint.y, spawnPoint.z))
+	hrp.AssemblyLinearVelocity = Vector3.zero
+	hrp.AssemblyAngularVelocity = Vector3.zero
+	notify("Spawn Teleport", "Teleported to " .. spawnPoint.name)
+end
+
+local function addLimeStroke(parent)
+	local stroke = Instance.new("UIStroke", parent)
+	stroke.Color = Color3.fromRGB(152, 251, 152)
+	stroke.Thickness = 1.5
+	return stroke
+end
+
+--MORSE CODE DECODER
+local MORSE_TABLE = {
+	[".-"]="A",["-..."]="B",["-.-."]="C",["-.."]="D",["."]="E",
+	["..-."]="F",["--."]="G",["...."]="H",[".."]="I",[".---"]="J",
+	["-.-"]="K",[".-.."]="L",["--"]="M",["-."]="N",["---"]="O",
+	[".--."]="P",["--.-"]="Q",[".-."]="R",["..."]="S",["-"]="T",
+	["..-"]="U",["...-"]="V",[".--"]="W",["-..-"]="X",["-.--"]="Y",
+	["--.."]="Z",
+	["-----"]="0",[".----"]="1",["..---"]="2",["...--"]="3",["....-"]="4",
+	["....."]="5",["-...."]="6",["--..."]="7",["---.."]="8",["----."]="9",
+	[".-.-.-"]=".",["--..--"]=",",["..--.."]="?",[".----."]="'",
+	["-.-.--"]="!",["-..-."]="/",["-.--."]="(",[".--.-."]="@",
+	["-.--.-"]=")",["---..."]=":",["-...-"]="=",["-....-"]="-",
+	["..--.-"]="_",[".-..-."]='"',[".-..."]="&",["-.-.-."]=";",
+	[".-.-."]="+",
+}
+
+local function morseToEnglish(input)
+	if not input or input == "" then return "" end
+	local s = input:gsub("[^%.%-%s/]", "")
+	s = s:gsub("%s*/%s*", " / ")
+	s = s:gsub("   +", " / ")
+	s = s:gsub("%s+", " ")
+	s = s:gsub("^%s+", ""):gsub("%s+$", "")
+
+	local out, curWord = {}, {}
+	for token in s:gmatch("[^%s]+") do
+		if token == "/" then
+			if #curWord > 0 then
+				out[#out+1] = table.concat(curWord, "")
+				curWord = {}
+			end
+		else
+			curWord[#curWord+1] = MORSE_TABLE[token] or ("[" .. token .. "]")
+		end
+	end
+	if #curWord > 0 then out[#out+1] = table.concat(curWord, "") end
+	return table.concat(out, " ")
+end
+
+-- ============================================================
+-- NOTE FINDER
+-- Note1 is used as a template. Once Note1 is located, Notes 2 and 3
+-- are looked up inside the exact same folder (and store) using the
+-- same naming pattern that matched Note1, plus name variants.
+-- ============================================================
+
+-- extracts a non-empty text string out of a note instance
+-- (works on the note itself, or nested SurfaceGui/TextLabels)
+local function extractNoteText(inst)
+	if not inst then return nil end
+
+	local function grabText(obj)
+		if not obj then return nil end
+		if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+			local t
+			pcall(function() t = obj.ContentText end)
+			if not t or t == "" then
+				pcall(function() t = obj.Text end)
+			end
+			if t and t ~= "" then return t end
+		end
+		return nil
+	end
+
+	local direct = grabText(inst)
+	if direct then return direct end
+
+	for _, d in ipairs(inst:GetDescendants()) do
+		local t = grabText(d)
+		if t then return t end
+	end
+	return nil
+end
+
+-- match a child name against a note-number, allowing variants like
+-- "Note1", "Note 1", "Note_1", "note1", "note 1", "note_1", "Note1Text"...
+local function nameMatchesNoteNumber(name, num)
+	if not name or not num or num == "" then return false end
+	local n = name:lower()
+	local target = "note"
+	-- must contain "note"
+	if not n:find("note", 1, true) then return false end
+	-- must contain the number, separated optionally
+	if n:find(target .. num, 1, true) then return true end
+	if n:find(target .. " " .. num, 1, true) then return true end
+	if n:find(target .. "_" .. num, 1, true) then return true end
+	if n:find(target .. "-" .. num, 1, true) then return true end
+	-- "note" followed by optional separator then num at end
+	if n:match("note[%s_%-]*" .. num .. "$") then return true end
+	if n:match("note[%s_%-]*" .. num .. "[%s_%-]") then return true end
+	return false
+end
+
+-- remember where Note1 was found so Notes 2 and 3 reuse it
+local note1Container = nil   -- the "Parts" folder Note1 lives in
+local note1StoreName = nil   -- the store folder name Note1 lives in
+
+-- locate Note1 the classic way and cache its container
+local function locateNote1()
+	-- already cached?
+	if note1Container and note1Container.Parent then
+		return note1Container, note1StoreName
+	end
+
+	local stores = Workspace:FindFirstChild("Stores")
+	if stores then
+		for _, store in ipairs(stores:GetChildren()) do
+			local parts = store:FindFirstChild("Parts")
+			if parts then
+				-- exact name first
+				local exact = parts:FindFirstChild("Note1")
+				if exact and extractNoteText(exact) then
+					note1Container = parts
+					note1StoreName = store.Name
+					return parts, store.Name
+				end
+				-- variant scan
+				for _, child in ipairs(parts:GetChildren()) do
+					if nameMatchesNoteNumber(child.Name, "1") and extractNoteText(child) then
+						note1Container = parts
+						note1StoreName = store.Name
+						return parts, store.Name
+					end
+				end
+			end
+		end
+	end
+	return nil, nil
+end
+
+--Main function used everywhere in the script
+local function findNoteText(noteName)
+	local num = noteName:match("%d+")
+	if not num then return nil, nil end
+
+	-- ----- Note1: classic location -----
+	if num == "1" then
+		local parts, storeName = locateNote1()
+		if parts then
+			-- try exact "Note1" first
+			local exact = parts:FindFirstChild("Note1")
+			if exact then
+				local t = extractNoteText(exact)
+				if t then return t, storeName end
+			end
+			-- variant scan
+			for _, child in ipairs(parts:GetChildren()) do
+				if nameMatchesNoteNumber(child.Name, "1") then
+					local t = extractNoteText(child)
+					if t then return t, storeName end
+				end
+			end
+		end
+		-- fallback: any store, any children (in case Stores folder structure differs)
+		local stores = Workspace:FindFirstChild("Stores")
+		if stores then
+			for _, store in ipairs(stores:GetChildren()) do
+				local parts = store:FindFirstChild("Parts")
+				if parts then
+					for _, child in ipairs(parts:GetChildren()) do
+						if nameMatchesNoteNumber(child.Name, "1") then
+							local t = extractNoteText(child)
+							if t then
+								note1Container = parts
+								note1StoreName = store.Name
+								return t, store.Name
+							end
+						end
+					end
+				end
+			end
+		end
+		return nil, nil
+	end
+
+	-- ----- Note2 / Note3: reuse Note1's container -----
+	local parts, storeName = locateNote1()
+	if parts then
+		-- exact name
+		local exact = parts:FindFirstChild(noteName)
+		if exact then
+			local t = extractNoteText(exact)
+			if t then return t, storeName end
+		end
+		-- variant by number
+		for _, child in ipairs(parts:GetChildren()) do
+			if nameMatchesNoteNumber(child.Name, num) then
+				local t = extractNoteText(child)
+				if t then return t, storeName end
+			end
+		end
+		-- last resort: pick the Nth note-looking child in this same folder
+		local noteChildren = {}
+		for _, child in ipairs(parts:GetChildren()) do
+			if child.Name:lower():find("note", 1, true) then
+				if extractNoteText(child) then
+					table.insert(noteChildren, child)
+				end
+			end
+		end
+		local idx = tonumber(num)
+		if idx and noteChildren[idx] then
+			local t = extractNoteText(noteChildren[idx])
+			if t then return t, storeName end
+		end
+	end
+
+	-- ----- Final fallback: broad recursive search in Workspace -----
+	local function scan(container, depth)
+		if depth > 8 then return nil, nil end
+		for _, child in ipairs(container:GetChildren()) do
+			if nameMatchesNoteNumber(child.Name, num) then
+				local t = extractNoteText(child)
+				if t then
+					-- derive store name from ancestors
+					local p = child.Parent
+					local s = "?"
+					while p and p ~= Workspace do
+						if p.Name ~= "Parts" and p.Name ~= "Stores"
+							and not p.Name:lower():find("note", 1, true) then
+							s = p.Name
+							break
+						end
+						p = p.Parent
+					end
+					return t, s
+				end
+			end
+			local t, s = scan(child, depth + 1)
+			if t then return t, s end
+		end
+		return nil, nil
+	end
+
+	return scan(Workspace, 0)
+end
+
+--NOTE AUTO-TELEPORT
+local NOTE_PHRASE_TO_ITEM = {
+    ["GIVE ME POWER"]                = "Battery",
+    ["CLAIMS TO BE HAPPY"]           = "Happy Ball",
+    ["I CANT SEE"]                   = "Tiger Eye",
+    ["GRANT ME LIGHT"]               = "Light Bulb",
+    ["KEEP ME WARM"]                 = "Cocoa Mug",
+    ["HATCHES INTO SOMETHING GREAT"] = "Egg",
+    ["GREAT WITH COOKIES"]           = "Milk",
+    ["GRANT MY WISH"]                = "Lamp",
+    ["QUACK QUACK"]                  = "Normal Duck",
+    ["IM THIRSTY"]                   = "Bloxy Cola",
+    ["WIELDED BY SOMEONE POWERFUL"]  = "Trident",
+    ["CHEAT CODE"]                   = "Controller",
+}
+
+local NOTE_KEYWORD_RULES = {
+    { words = {"power"},        item = "Battery" },
+    { words = {"happy"},        item = "Happy Ball" },
+    { words = {"see", "blind"}, item = "Tiger Eye" },
+    { words = {"light"},        item = "Light Bulb" },
+    { words = {"warm"},         item = "Cocoa Mug" },
+    { words = {"hatch"},        item = "Egg" },
+    { words = {"cookie"},       item = "Milk" },
+    { words = {"wish"},         item = "Lamp" },
+    { words = {"quack"},        item = "Normal Duck" },
+    { words = {"thirsty"},      item = "Bloxy Cola" },
+    { words = {"powerful"},     item = "Trident" },
+    { words = {"cheat"},        item = "Controller" },
+}
+
+local NOTE_ITEM_TO_STORE = {
+    ["Battery"]     = {"plantomics", "plantomic"},
+    ["Happy Ball"]  = {"plantomics", "plantomic"},
+    ["Tiger Eye"]   = {"blackmarket", "black market", "black"},
+    ["Light Bulb"]  = {"furniture", "fancy"},
+    ["Cocoa Mug"]   = {"igloo"},
+    ["Egg"]         = {"plantomics", "plantomic"},
+    ["Milk"]        = {"seaside", "sea side", "sea"},
+    ["Lamp"]        = {"stonerus", "stone r us", "stone"},
+    ["Controller"]  = {"plantomics", "plantomic"},
+}
+
+local noteAutoTPRunning = false
+local noteAutoTPAbort   = false
+local noteQuantity      = 1
+local notePlatformTargets = {1, 2, 3}
+
+local function normalizePhrase(s)
+    if not s then return "" end
+    s = s:lower():gsub("[%p]", " "):gsub("%s+", " ")
+    return s:gsub("^%s+", ""):gsub("%s+$", "")
+end
+
+local NOTE_PHRASE_LOOKUP = {}
+for phrase, item in pairs(NOTE_PHRASE_TO_ITEM) do
+    NOTE_PHRASE_LOOKUP[normalizePhrase(phrase)] = { item = item, phrase = phrase }
+end
+
+local function getItemFromDecodedNote(decoded)
+    if not decoded or decoded == "" then return nil, nil end
+    local norm = normalizePhrase(decoded)
+    if norm == "" then return nil, nil end
+    if NOTE_PHRASE_LOOKUP[norm] then
+        return NOTE_PHRASE_LOOKUP[norm].item, NOTE_PHRASE_LOOKUP[norm].phrase
+    end
+    for key, entry in pairs(NOTE_PHRASE_LOOKUP) do
+        if norm:find(key, 1, true) then return entry.item, entry.phrase end
+    end
+    for _, rule in ipairs(NOTE_KEYWORD_RULES) do
+        for _, kw in ipairs(rule.words) do
+            if norm:find(kw, 1, true) then return rule.item, norm end
+        end
+    end
+    return nil, nil
+end
+
+local function findStoreEntryByKeywords(storeList, keywords)
+    if not storeList or not keywords then return nil end
+    for _, entry in ipairs(storeList) do
+        local n = entry.storeName:lower():gsub("%s+", "")
+        for _, kw in ipairs(keywords) do
+            local k = kw:lower():gsub("%s+", "")
+            if n:find(k, 1, true) then return entry end
+        end
+    end
+    return nil
+end
+
+local function snapshotItemSet(items)
+    local s = {}
+    for _, it in ipairs(items) do s[it] = true end
+    return s
+end
+
+local function findItemsInWorld(itemName)
+    local found = {}
+    if not itemName or itemName == "" then return found end
+    local target = itemName:lower()
+    local seen = {}
+    local function checkObj(obj)
+        if not obj or seen[obj] then return end
+        local n = obj.Name:lower()
+        local isExact = (n == target)
+        local isPartial = (not isExact) and n:find(target, 1, true)
+        if isExact or isPartial then
+            if obj:IsA("Model") and (obj:FindFirstChild("Main") or obj.PrimaryPart) then
+                if not Players:GetPlayerFromCharacter(obj) then
+                    seen[obj] = true; table.insert(found, obj)
+                end
+            elseif obj:IsA("BasePart") and not Players:GetPlayerFromCharacter(obj.Parent) then
+                seen[obj] = true; table.insert(found, obj)
+            end
+        end
+    end
+    for _, c in ipairs(Workspace:GetChildren()) do
+        checkObj(c)
+        if c:IsA("Folder") or c:IsA("Model") then
+            for _, sub in ipairs(c:GetChildren()) do
+                checkObj(sub)
+                if sub:IsA("Folder") or sub:IsA("Model") then
+                    for _, subsub in ipairs(sub:GetChildren()) do checkObj(subsub) end
+                end
+            end
+        end
+    end
+    return found
+end
+
+local function teleportItemToPos(item, targetPos)
+    if not item or not item.Parent then return false end
+    local main, root = getTeleportTarget(item)
+    if not main or not root then return false end
+
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp or not dragRemote then return false end
+
+    local originalCF = hrp.CFrame
+    if root:IsA("Model") then pcall(function() root.PrimaryPart = main end) end
+    pcall(function() main:SetNetworkOwner(player) end)
+    local wasAnchored = main.Anchored
+    main.Anchored = false
+
+    local thisDragId = nextDragId()
+    hrp.CFrame = main.CFrame
+    task.wait(0.05)
+    pcall(function() dragRemote:FireServer("Begin", root, thisDragId) end)
+    task.wait(0.05)
+    pcall(function() dragRemote:FireServer("Refresh", root, thisDragId) end)
+    task.wait(0.05)
+
+    local targetCF = CFrame.new(targetPos)
+    main.AssemblyLinearVelocity = Vector3.zero
+    main.AssemblyAngularVelocity = Vector3.zero
+
+    local draggerParts = findDragger()
+    for _ = 1, 10 do
+        if noteAutoTPAbort then break end
+        if root:IsA("Model") then
+            pcall(function() root.PrimaryPart = main; root:PivotTo(targetCF) end)
+        end
+        main.CFrame = targetCF
+        for _, d in ipairs(draggerParts) do
+            if d and d.Parent then d.CFrame = targetCF end
+        end
+        pcall(function() dragRemote:FireServer("Refresh", root, thisDragId) end)
+        task.wait(0.025)
+    end
+
+    for _ = 1, 4 do
+        pcall(function() dragRemote:FireServer("Refresh", root, thisDragId) end)
+        task.wait(0.03)
+    end
+    task.wait(0.1)
+
+    for _ = 1, 3 do
+        pcall(function() dragRemote:FireServer("End", root, thisDragId) end)
+        if forceEndDragRemote then pcall(function() forceEndDragRemote:FireServer() end) end
+        task.wait(0.05)
+    end
+
+    for _, d in ipairs(findDragger()) do
+        if d and d.Parent then pcall(function() d:Destroy() end) end
+    end
+
+    task.wait(0.15)
+    main.Anchored = wasAnchored
+    main.AssemblyLinearVelocity = Vector3.zero
+    main.AssemblyAngularVelocity = Vector3.zero
+    pcall(function() main:SetNetworkOwner(nil) end)
+    hrp.CFrame = originalCF
+    return (main.Position - targetPos).Magnitude < 30
+end
+
+local function runNoteAutoTP(statusCb)
+    if noteAutoTPRunning then return end
+    noteAutoTPRunning = true
+    noteAutoTPAbort = false
+
+    local wasActive = hardDraggerActive
+    if not wasActive then startHardDragger(true); task.wait(0.3) end
+
+    local storeList = discoverStores()
+    local totalSent = 0
+
+    for i = 1, 3 do
+        if noteAutoTPAbort then break end
+
+        local platformIdx = notePlatformTargets[i] or i
+        if platformIdx < 1 or platformIdx > 3 then platformIdx = 1 end
+        local targetPos = PLATFORM_POSITIONS[platformIdx]
+
+        local rawText = findNoteText("Note" .. i)
+        local decoded = morseToEnglish(rawText or "")
+        local itemName, phrase = getItemFromDecodedNote(decoded)
+
+        if statusCb then statusCb(i, phrase or decoded, itemName, "reading") end
+
+        if itemName then
+            local storeKeywords = NOTE_ITEM_TO_STORE[itemName]
+            local storeEntry    = storeKeywords and findStoreEntryByKeywords(storeList, storeKeywords) or nil
+
+            local moved = 0
+            for k = 1, noteQuantity do
+                if noteAutoTPAbort then break end
+
+                local boughtItem = nil
+
+                if storeEntry then
+                    if statusCb then
+                        statusCb(i, phrase, itemName, ("buying %d/%d from %s"):format(k, noteQuantity, storeEntry.storeName))
+                    end
+                    local shopItem = findShopItemByCDOrName(storeEntry, itemName)
+                    if not shopItem then
+                        shopItem = waitForShopItem(storeEntry, itemName, nil, 3.0)
+                    end
+                    if shopItem then
+                        local beforeSet = snapshotItemSet(findItemsInWorld(itemName))
+                        pcall(buyItem, storeEntry, shopItem, true)
+                        task.wait(0.5)
+                        local after = findItemsInWorld(itemName)
+                        for _, it in ipairs(after) do
+                            if not beforeSet[it] then boughtItem = it; break end
+                        end
+                        if not boughtItem and #after > 0 then boughtItem = after[1] end
+                    else
+                        if statusCb then statusCb(i, phrase, itemName, "not in shop") end
+                    end
+                else
+                    if statusCb then
+                        statusCb(i, phrase, itemName, ("world search %d/%d"):format(k, noteQuantity))
+                    end
+                    local items = findItemsInWorld(itemName)
+                    if #items >= k then boughtItem = items[k] end
+                end
+
+                if boughtItem then
+                    if statusCb then
+                        statusCb(i, phrase, itemName, ("teleporting %d/%d -> platform %d"):format(k, noteQuantity, platformIdx))
+                    end
+                    local ok = teleportItemToPos(boughtItem, targetPos)
+                    if ok then moved = moved + 1; totalSent = totalSent + 1 end
+                else
+                    if statusCb then statusCb(i, phrase, itemName, "no instance found") end
+                    break
+                end
+
+                task.wait(0.3)
+            end
+
+            if statusCb then
+                statusCb(i, phrase, itemName, ("done %d/%d -> platform %d"):format(moved, noteQuantity, platformIdx))
+            end
+        else
+            if statusCb then statusCb(i, decoded, nil, "unknown") end
+        end
+
+        task.wait(0.2)
+    end
+
+    if not wasActive then stopHardDragger(true) end
+    noteAutoTPRunning = false
+    if statusCb then
+        statusCb(0, noteAutoTPAbort and "Aborted" or ("Done — %d items moved"):format(totalSent), nil, "final")
+    end
+end
+
+--BUILD UI
+local function BuildHub()
+	local existing = player.PlayerGui:FindFirstChild("MortyModernHub")
+	if existing then existing:Destroy() end
+
+	local mainGui = Instance.new("ScreenGui")
+	mainGui.Name = "MortyModernHub"
+	mainGui.ResetOnSpawn = false
+	mainGui.Parent = player.PlayerGui
+
+	local main = Instance.new("Frame", mainGui)
+	main.Size = UDim2.new(0, 560, 0, 380)
+	main.Position = UDim2.new(0.5, -280, 0.5, -190)
+	main.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+	main.BorderSizePixel = 0
+	main.Active = true
+	Instance.new("UICorner", main).CornerRadius = UDim.new(0, 6)
+
+	local topDragger = Instance.new("Frame", main)
+	topDragger.Size = UDim2.new(1, -30, 0, 45)
+	topDragger.BackgroundTransparency = 1
+	topDragger.Active = true
+
+	local draggingMain, dragInput, dragStart, startPos
+	topDragger.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			draggingMain = true
+			dragStart = input.Position
+			startPos = main.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then draggingMain = false end
+			end)
+		end
+	end)
+	topDragger.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and draggingMain then
+			local delta = input.Position - dragStart
+			main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+
+	UserInputService.InputBegan:Connect(function(input, gp)
+		if input.KeyCode == Enum.KeyCode.LeftAlt then
+			main.Visible = not main.Visible
+		end
+	end)
+
+	local closeBtn = Instance.new("TextButton", main)
+	closeBtn.Size = UDim2.new(0, 26, 0, 26)
+	closeBtn.Position = UDim2.new(1, -32, 0, 8)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+	closeBtn.Text = "X"
+	closeBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+	closeBtn.Font = Enum.Font.SourceSansBold
+	closeBtn.TextSize = 14
+	Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
+	closeBtn.MouseButton1Click:Connect(function() main.Visible = false end)
+
+	local sidebar = Instance.new("Frame", main)
+	sidebar.Size = UDim2.new(0, 140, 1, 0)
+	sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+	sidebar.BorderSizePixel = 0
+	Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 6)
+
+	local logoLabel = Instance.new("TextLabel", sidebar)
+	logoLabel.Size = UDim2.new(1, 0, 0, 45)
+	logoLabel.BackgroundTransparency = 1
+	logoLabel.Text = "MORTY HUB"
+	logoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	logoLabel.Font = Enum.Font.SourceSansBold
+	logoLabel.TextSize = 16
+
+	local navContainer = Instance.new("ScrollingFrame", sidebar)
+	navContainer.Size = UDim2.new(1, 0, 1, -50)
+	navContainer.Position = UDim2.new(0, 0, 0, 50)
+	navContainer.BackgroundTransparency = 1
+	navContainer.BorderSizePixel = 0
+	navContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+	navContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	navContainer.ScrollBarThickness = 2
+	navContainer.ScrollingDirection = Enum.ScrollingDirection.Y
+	navContainer.ElasticBehavior = Enum.ElasticBehavior.Never
+	local navLayout = Instance.new("UIListLayout", navContainer)
+	navLayout.Padding = UDim.new(0, 4)
+	navLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	navLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+	local contentPanel = Instance.new("Frame", main)
+	contentPanel.Size = UDim2.new(1, -140, 1, 0)
+	contentPanel.Position = UDim2.new(0, 140, 0, 0)
+	contentPanel.BackgroundTransparency = 1
+
+	local pages = {}
+	local tabs = {"Player", "Tools", "Wood", "Item TP", "AutoBuy", "World", "Misc", "Credits", "Channel Log"}
+
+	for i, name in ipairs(tabs) do
+		local btn = Instance.new("TextButton", navContainer)
+		btn.Size = UDim2.new(1, -16, 0, 34)
+		btn.BackgroundTransparency = 1
+		btn.Text = "  " .. name
+		btn.TextColor3 = Color3.fromRGB(160, 160, 170)
+		btn.Font = Enum.Font.SourceSansSemibold
+		btn.TextSize = 14
+		btn.TextXAlignment = Enum.TextXAlignment.Left
+		btn.LayoutOrder = i
+
+		local pg = Instance.new("ScrollingFrame", contentPanel)
+		pg.Size = UDim2.new(1, -20, 1, -20)
+		pg.Position = UDim2.new(0, 10, 0, 10)
+		pg.Visible = (i == 1)
+		pg.BackgroundTransparency = 1
+		pg.BorderSizePixel = 0
+		pg.CanvasSize = UDim2.new(0, 0, 0, 0)
+		pg.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		pg.ScrollBarThickness = 4
+		pg.ScrollingDirection = Enum.ScrollingDirection.Y
+		pg.ElasticBehavior = Enum.ElasticBehavior.Never
+
+		local list = Instance.new("UIListLayout", pg)
+		list.Padding = UDim.new(0, 8)
+		list.SortOrder = Enum.SortOrder.LayoutOrder
+		pages[name] = pg
+
+		if i == 1 then
+			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			btn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+			btn.BackgroundTransparency = 0
+			Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+			addLimeStroke(btn)
+		end
+
+		btn.MouseButton1Click:Connect(function()
+			for _, p in pairs(pages) do p.Visible = false end
+			for _, child in ipairs(navContainer:GetChildren()) do
+				if child:IsA("TextButton") then
+					child.TextColor3 = Color3.fromRGB(160, 160, 170)
+					child.BackgroundTransparency = 1
+					local stroke = child:FindFirstChildOfClass("UIStroke")
+					if stroke then stroke:Destroy() end
+				end
+			end
+			pg.Visible = true
+			btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+			btn.BackgroundTransparency = 0
+			btn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+			addLimeStroke(btn)
+		end)
+	end
+
+	local function createLabel(parent, text)
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(1, -10, 0, 0)
+		label.AutomaticSize = Enum.AutomaticSize.Y
+		label.BackgroundTransparency = 1
+		label.Text = text
+		label.TextColor3 = Color3.fromRGB(220, 220, 225)
+		label.Font = Enum.Font.SourceSansSemibold
+		label.TextSize = 14
+		label.TextWrapped = true
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.TextYAlignment = Enum.TextYAlignment.Top
+		label.Parent = parent
+	end
+
+	local function createSlider(parent, labelText, minVal, maxVal, defaultVal, callback)
+		local frame = Instance.new("Frame", parent)
+		frame.Size = UDim2.new(1, 0, 0, 45)
+		frame.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+		Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+
+		local title = Instance.new("TextLabel", frame)
+		title.Size = UDim2.new(0.6, 0, 0, 20)
+		title.Position = UDim2.new(0, 12, 0, 4)
+		title.BackgroundTransparency = 1
+		title.Text = labelText
+		title.TextColor3 = Color3.fromRGB(220, 220, 225)
+		title.Font = Enum.Font.SourceSansSemibold
+		title.TextSize = 14
+		title.TextXAlignment = Enum.TextXAlignment.Left
+
+		local valBox = Instance.new("TextBox", frame)
+		valBox.Size = UDim2.new(0.4, -12, 0, 20)
+		valBox.Position = UDim2.new(0.6, 0, 0, 4)
+		valBox.BackgroundTransparency = 1
+		valBox.Text = tostring(defaultVal)
+		valBox.TextColor3 = Color3.fromRGB(200, 200, 205)
+		valBox.Font = Enum.Font.SourceSansBold
+		valBox.TextSize = 14
+		valBox.TextXAlignment = Enum.TextXAlignment.Right
+		valBox.ClearTextOnFocus = false
+
+		local bgBar = Instance.new("TextButton", frame)
+		bgBar.Size = UDim2.new(1, -24, 0, 6)
+		bgBar.Position = UDim2.new(0, 12, 0, 30)
+		bgBar.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+		bgBar.Text = ""
+		Instance.new("UICorner", bgBar).CornerRadius = UDim.new(1, 0)
+
+		local fill = Instance.new("Frame", bgBar)
+		fill.Size = UDim2.new(math.clamp((defaultVal - minVal)/(maxVal - minVal), 0, 1), 0, 1, 0)
+		fill.BackgroundColor3 = Color3.fromRGB(3, 255, 0)
+		fill.BorderSizePixel = 0
+		Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+
+		local function applyValue(val)
+			val = math.clamp(val, minVal, maxVal)
+			fill.Size = UDim2.new((val - minVal)/(maxVal - minVal), 0, 1, 0)
+			valBox.Text = tostring(val)
+			callback(val)
+		end
+
+		local dragging = false
+		bgBar.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+		end)
+		UserInputService.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+		end)
+		UserInputService.InputChanged:Connect(function(input)
+			if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+				local pos = math.clamp((input.Position.X - bgBar.AbsolutePosition.X) / bgBar.AbsoluteSize.X, 0, 1)
+				applyValue(math.floor(minVal + (maxVal - minVal) * pos))
+			end
+		end)
+		valBox.FocusLost:Connect(function()
+			local num = tonumber(valBox.Text)
+			if num then applyValue(math.floor(num))
+			else valBox.Text = tostring(defaultVal) end
+		end)
+		return { applyValue = applyValue, frame = frame }
+	end
+
+	local function createToggle(parent, labelText, default, callback)
+		local frame = Instance.new("Frame", parent)
+		frame.Size = UDim2.new(1, 0, 0, 36)
+		frame.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+		Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
+
+		local title = Instance.new("TextLabel", frame)
+		title.Size = UDim2.new(0.7, 0, 1, 0)
+		title.Position = UDim2.new(0, 12, 0, 0)
+		title.BackgroundTransparency = 1
+		title.Text = labelText
+		title.TextColor3 = Color3.fromRGB(220, 220, 225)
+		title.Font = Enum.Font.SourceSansSemibold
+		title.TextSize = 14
+		title.TextXAlignment = Enum.TextXAlignment.Left
+
+		local toggleBg = Instance.new("TextButton", frame)
+		toggleBg.Size = UDim2.new(0, 40, 0, 20)
+		toggleBg.Position = UDim2.new(1, -52, 0.5, -10)
+		toggleBg.BackgroundColor3 = default and Color3.fromRGB(0, 162, 255) or Color3.fromRGB(50, 50, 58)
+		toggleBg.Text = ""
+		Instance.new("UICorner", toggleBg).CornerRadius = UDim.new(1, 0)
+
+		local circle = Instance.new("Frame", toggleBg)
+		circle.Size = UDim2.new(0, 16, 0, 16)
+		circle.Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+		circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		Instance.new("UICorner", circle).CornerRadius = UDim.new(1, 0)
+
+		local state = default
+		toggleBg.MouseButton1Click:Connect(function()
+			state = not state
+			toggleBg.BackgroundColor3 = state and Color3.fromRGB(0, 162, 255) or Color3.fromRGB(50, 50, 58)
+			circle:TweenPosition(state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8), "Out", "Quad", 0.1, true)
+			callback(state)
+		end)
+	end
+
+	local function createButton(parent, labelText, callback)
+		local btn = Instance.new("TextButton", parent)
+		btn.Size = UDim2.new(1, 0, 0, 36)
+		btn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+		btn.Text = "  " .. labelText
+		btn.TextColor3 = Color3.fromRGB(220, 220, 225)
+		btn.Font = Enum.Font.SourceSansSemibold
+		btn.TextSize = 14
+		btn.TextXAlignment = Enum.TextXAlignment.Left
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+		btn.MouseButton1Click:Connect(callback)
+		return btn
+	end
+
+	local function createDualButton(parent, leftText, leftCallback, rightText, rightCallback)
+		local frame = Instance.new("Frame", parent)
+		frame.Size = UDim2.new(1, 0, 0, 36)
+		frame.BackgroundTransparency = 1
+
+		local left = Instance.new("TextButton", frame)
+		left.Size = UDim2.new(0.5, -4, 1, 0)
+		left.Position = UDim2.new(0, 0, 0, 0)
+		left.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+		left.Text = "  " .. leftText
+		left.TextColor3 = Color3.fromRGB(220, 220, 225)
+		left.Font = Enum.Font.SourceSansSemibold
+		left.TextSize = 13
+		left.TextXAlignment = Enum.TextXAlignment.Left
+		Instance.new("UICorner", left).CornerRadius = UDim.new(0, 6)
+		left.MouseButton1Click:Connect(leftCallback)
+
+		local right = Instance.new("TextButton", frame)
+		right.Size = UDim2.new(0.5, -4, 1, 0)
+		right.Position = UDim2.new(0.5, 4, 0, 0)
+		right.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+		right.Text = "  " .. rightText
+		right.TextColor3 = Color3.fromRGB(220, 220, 225)
+		right.Font = Enum.Font.SourceSansSemibold
+		right.TextSize = 13
+		right.TextXAlignment = Enum.TextXAlignment.Left
+		Instance.new("UICorner", right).CornerRadius = UDim.new(0, 6)
+		right.MouseButton1Click:Connect(rightCallback)
+
+		return frame
+	end
+
+	local function createDropdown(parent, name, items, callback, labelFunc)
+		local df = Instance.new("Frame", parent)
+		df.Size = UDim2.new(1, 0, 0, 36)
+		df.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+		df.ClipsDescendants = true
+		Instance.new("UICorner", df).CornerRadius = UDim.new(0, 6)
+
+		local db = Instance.new("TextButton", df)
+		db.Size = UDim2.new(1, 0, 0, 36)
+		db.BackgroundTransparency = 1
+		db.Text = "  [ " .. name .. " ]"
+		db.TextColor3 = Color3.fromRGB(220, 220, 225)
+		db.Font = Enum.Font.SourceSansSemibold
+		db.TextSize = 14
+		db.TextXAlignment = Enum.TextXAlignment.Left
+
+		local ls = Instance.new("Frame", df)
+		ls.Position = UDim2.new(0, 0, 0, 36)
+		ls.Size = UDim2.new(1, 0, 0, 0)
+		ls.BackgroundTransparency = 1
+		Instance.new("UIListLayout", ls)
+
+		db.MouseButton1Click:Connect(function()
+			local data = type(items) == "function" and items() or items
+			if ls.Size.Y.Offset == 0 then
+				for i, v in ipairs(data) do
+					local item = v
+					local b = Instance.new("TextButton", ls)
+					b.Size = UDim2.new(1, 0, 0, 30)
+					b.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+					b.Text = "    " .. ((labelFunc and labelFunc(item)) or tostring(item))
+					b.TextColor3 = Color3.fromRGB(200, 200, 205)
+					b.Font = Enum.Font.SourceSans
+					b.TextSize = 13
+					b.TextXAlignment = Enum.TextXAlignment.Left
+					b.MouseButton1Click:Connect(function() callback(item) end)
+				end
+				ls.Size = UDim2.new(1, 0, 0, #data * 30)
+				df.Size = UDim2.new(1, 0, 0, 36 + (#data * 30))
+			else
+				ls.Size = UDim2.new(1, 0, 0, 0)
+				df.Size = UDim2.new(1, 0, 0, 36)
+				for _, child in ipairs(ls:GetChildren()) do
+					if child:IsA("TextButton") then child:Destroy() end
+				end
+			end
+		end)
+	end
+
+	--PLAYER TAB
+	createSlider(pages.Player, "WalkSpeed", 16, 250, wSpeed, function(v) wSpeed = v end)
+	createSlider(pages.Player, "JumpPower", 50, 300, jPower, function(v) jPower = v end)
+	createSlider(pages.Player, "Fly Speed", 10, 500, fSpeed, function(v) fSpeed = v end)
+	createToggle(pages.Player, "Spin Character", false, function(state)
+		spinning = state
+		if spinConnection then spinConnection:Disconnect() end
+		if player.Character and player.Character:FindFirstChild("Humanoid") then player.Character.Humanoid.AutoRotate = not state end
+		if state then
+			spinConnection = RunService.RenderStepped:Connect(function(dt) if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then player.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(spinSpeed) * dt, 0) end end)
+		end
+	end)
+	createDropdown(pages.Player, "Teleport to Player", function() return Players:GetPlayers() end, function(p) if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then player.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame notify("Teleport", "Teleported to " .. p.Name, 2) end end end, function(p) return p.Name end)
+	createDropdown(pages.Player, "Spectate Player", function() return Players:GetPlayers() end, function(p) if p and p.Character and p.Character:FindFirstChild("Humanoid") then camera.CameraSubject = p.Character.Humanoid notify("Spectate", "Spectating " .. p.Name, 2) end end, function(p) return p.Name end)
+	createToggle(pages.Player, "Un-Spectate", false, function(state) if state and player.Character and player.Character:FindFirstChild("Humanoid") then camera.CameraSubject = player.Character.Humanoid notify("Spectate", "Camera Reset", 2) end end)
+
+	-- ====== TOOLS TAB ======
+	createToggle(pages.Tools, "Btools & Undo Tools", false, function(state) setBtoolsState(state) end)
+	createDualButton(pages.Tools, "Give Tools", function() setBtoolsState(true) end, "Remove Tools", function() setBtoolsState(false) end)
+	createToggle(pages.Tools, "Hard Dragger (Super Drag)", false, function(state) if state then startHardDragger() else stopHardDragger() end end)
+	createSlider(pages.Tools, "Dragger Strength", 1000, 100000, hardDraggerStrength, function(val) hardDraggerStrength = val end)
+	local noClipEnabled = false
+	local noClipConnection = nil
+	createToggle(pages.Tools, "No Clip", false, function(state)
+		noClipEnabled = state
+		if noClipConnection then noClipConnection:Disconnect() end
+		if noClipEnabled then
+			noClipConnection = RunService.Stepped:Connect(function() local char = player.Character if char then for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end end end)
+		else
+			local char = player.Character if char then for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = true end end end
+		end
+	end)
+
+	--WOOD TAB
+	createButton(pages.Wood, "Sell Logs ", function() pcall(sellWood); notify("Wood", "Sold logs!", 2) end)
+	createButton(pages.Wood, "Sell Planks ", function() pcall(sellPlanks); notify("Wood", "Sold planks!", 2) end)
+
+	--ITEM TP TAB
+	createToggle(pages["Item TP"], "Selection Mode (Click E)", false, function(state)
+		selectionMode = state
+		notify("Item TP", state and "Selection ON (AutoBuy adds bought items)" or "Selection OFF", 3)
+	end)
+	createButton(pages["Item TP"], "Teleport Selected (T)", function() performTeleport() end)
+	createButton(pages["Item TP"], "Teleport Sideways", function() performTeleport("sideways") end)
+	createButton(pages["Item TP"], "Teleport Upwards", function() performTeleport("upwards") end)
+	createButton(pages["Item TP"], "Clear Selection (C)", function() clearSelection() end)
+	createSlider(pages["Item TP"], "Teleport Speed", 1, 1000, teleportSpeed, function(v) teleportSpeed = v end)
+	--AUTO-BUY TAB
+	local autobuyPage = pages.AutoBuy
+
+	local searchBox = Instance.new("TextBox", autobuyPage)
+	searchBox.Size = UDim2.new(1, 0, 0, 32)
+	searchBox.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+	searchBox.PlaceholderText = "Search items"
+	searchBox.Text = ""
+	searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	searchBox.PlaceholderColor3 = Color3.fromRGB(140, 140, 150)
+	searchBox.Font = Enum.Font.SourceSans
+	searchBox.TextSize = 13
+	searchBox.ClearTextOnFocus = false
+	searchBox.TextXAlignment = Enum.TextXAlignment.Left
+	Instance.new("UICorner", searchBox).CornerRadius = UDim.new(0, 6)
+	local searchPad = Instance.new("UIPadding", searchBox)
+	searchPad.PaddingLeft = UDim.new(0, 8)
+
+	local buyQuantity = 1
+	createSlider(autobuyPage, "Quantity", 1, 50, 1, function(v)
+		buyQuantity = math.max(1, math.floor(v))
+	end)
+
+	local function buyItemMultiple(entry, itemKey, times)
+		times = math.max(1, math.floor(tonumber(times) or 1))
+		local bought = 0
+		local lastBought = nil
+
+		local char = player.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local startCF = root and root.CFrame
+
+		for i = 1, times do
+			local current = findShopItemByCDOrName(entry, itemKey)
+			if not current then
+				current = waitForShopItem(entry, itemKey, lastBought, SHOP_REROLL_TIMEOUT)
+			end
+			if not current then
+				if bought == 0 then
+					notify("AutoBuy", itemKey .. " not in shop", 2)
+				else
+					notify("AutoBuy", ("Bought %d/%d of %s (timeout)"):format(bought, times, itemKey), 3)
+				end
+				returnHome(root, startCF)
+				return
+			end
+
+			lastBought = current
+			pcall(buyItem, entry, current, true)
+			bought = bought + 1
+
+			if i < times then
+				local fresh = waitForShopItem(entry, itemKey, lastBought, SHOP_REROLL_TIMEOUT)
+				if not fresh then
+					notify("AutoBuy", ("Bought %d/%d of %s (respawn timeout)"):format(bought, times, itemKey), 3)
+					returnHome(root, startCF)
+					return
+				end
+				lastBought = fresh
+			end
+		end
+
+		returnHome(root, startCF)
+		notify("AutoBuy", ("Bought %d x %s"):format(bought, itemKey), 2)
+	end
+
+	local refreshBtn = createButton(autobuyPage, "Refresh Stores", function() end)
+
+	local learnedLabel = Instance.new("TextLabel", autobuyPage)
+	learnedLabel.Size = UDim2.new(1, -10, 0, 18)
+	learnedLabel.BackgroundTransparency = 1
+	learnedLabel.Text = "Learned NPC IDs: 0"
+	learnedLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+	learnedLabel.Font = Enum.Font.SourceSans
+	learnedLabel.TextSize = 12
+	learnedLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+	local hintLabel = Instance.new("TextLabel", autobuyPage)
+	hintLabel.Size = UDim2.new(1, -10, 0, 0)
+	hintLabel.AutomaticSize = Enum.AutomaticSize.Y
+	hintLabel.BackgroundTransparency = 1
+	hintLabel.Text = "Warning: item teleport must be on to teleport items. Some items may not work, and item buy count may be inaccurate."
+	hintLabel.TextColor3 = Color3.fromRGB(140, 200, 140)
+	hintLabel.Font = Enum.Font.SourceSans
+	hintLabel.TextSize = 11
+	hintLabel.TextWrapped = true
+	hintLabel.TextXAlignment = Enum.TextXAlignment.Left
+	hintLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+	local storeEntriesFrame = Instance.new("Frame", autobuyPage)
+	storeEntriesFrame.Size = UDim2.new(1, 0, 0, 0)
+	storeEntriesFrame.AutomaticSize = Enum.AutomaticSize.Y
+	storeEntriesFrame.BackgroundTransparency = 1
+	local storeLayout = Instance.new("UIListLayout", storeEntriesFrame)
+	storeLayout.Padding = UDim.new(0, 4)
+	storeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+	local cachedStoreData = {}
+
+	local function getSearchQuery()
+		local q = searchBox.Text or ""
+		q = q:lower():gsub("^%s+", ""):gsub("%s+$", "")
+		return q
+	end
+
+	local function passesFilter(storeName, itemName)
+		local q = getSearchQuery()
+		if q == "" then return true end
+		local lStore = storeName:lower()
+		local lItem  = (itemName or ""):lower()
+		return lStore:find(q, 1, true) ~= nil or lItem:find(q, 1, true) ~= nil
+	end
+
+	local function rebuildAutobuy()
+		for _, c in ipairs(storeEntriesFrame:GetChildren()) do
+			if not c:IsA("UIListLayout") then c:Destroy() end
+		end
+
+		local n = 0
+		for _ in pairs(LEARNED_IDS) do n = n + 1 end
+		learnedLabel.Text = ("Learned NPC IDs: %d"):format(n)
+
+		cachedStoreData = discoverStores()
+		if #cachedStoreData == 0 then
+			local empty = Instance.new("TextLabel", storeEntriesFrame)
+			empty.Size = UDim2.new(1, 0, 0, 0)
+			empty.AutomaticSize = Enum.AutomaticSize.Y
+			empty.BackgroundTransparency = 1
+			empty.Text = "No stores found. Walk near stores or refresh."
+			empty.TextColor3 = Color3.fromRGB(180, 180, 180)
+			empty.Font = Enum.Font.SourceSans
+			empty.TextSize = 12
+			empty.TextWrapped = true
+			empty.TextXAlignment = Enum.TextXAlignment.Left
+			empty.TextYAlignment = Enum.TextYAlignment.Top
+			return
+		end
+
+		local order = 0
+		for i, entry in ipairs(cachedStoreData) do
+			local id = LEARNED_IDS[entry.npc.Name]
+			local hasPos = entry.dropPos and "✓" or "?"
+
+			local visibleEntries = {}
+			local seenKeys       = {}
+			for _, it in ipairs(entry.shop:GetChildren()) do
+				if it:IsA("Model") then
+					local cd       = getCDValue(it)
+					local display  = cd and (cd .. "  (" .. it.Name .. ")") or it.Name
+					local key      = cd or ("__name:" .. it.Name)
+					if not seenKeys[key] and passesFilter(entry.storeName, display) then
+						seenKeys[key] = true
+						table.insert(visibleEntries, {
+							name    = it.Name,
+							cd      = cd,
+							display = display,
+						})
+					end
+				end
+			end
+
+			local storeMatches = passesFilter(entry.storeName, nil)
+			if not storeMatches and #visibleEntries == 0 then
+				continue
+			end
+
+			order = order + 1
+			local storeOrder = order * 1000
+
+			local header = Instance.new("TextLabel", storeEntriesFrame)
+			header.Size = UDim2.new(1, 0, 0, 24)
+			header.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+			header.Text = ("  %s  (%s)  ID=%s  %s"):format(
+				entry.storeName, entry.npc.Name,
+				id and tostring(id) or "?", hasPos)
+			header.TextXAlignment = Enum.TextXAlignment.Left
+			header.TextColor3 = Color3.fromRGB(220, 220, 220)
+			header.Font = Enum.Font.SourceSansBold
+			header.TextSize = 12
+			header.LayoutOrder = storeOrder
+			Instance.new("UICorner", header).CornerRadius = UDim.new(0, 4)
+
+			local buyAll = Instance.new("TextButton", storeEntriesFrame)
+			buyAll.Size = UDim2.new(1, 0, 0, 26)
+			buyAll.BackgroundColor3 = Color3.fromRGB(80, 160, 90)
+			buyAll.Text = "  Buy ALL  —  " .. entry.storeName
+			buyAll.TextXAlignment = Enum.TextXAlignment.Left
+			buyAll.TextColor3 = Color3.fromRGB(255, 255, 255)
+			buyAll.Font = Enum.Font.SourceSansBold
+			buyAll.TextSize = 12
+			buyAll.LayoutOrder = storeOrder + 1
+			Instance.new("UICorner", buyAll).CornerRadius = UDim.new(0, 4)
+
+			buyAll.MouseButton1Click:Connect(function()
+				if buyingStores[entry.storeName] then return end
+				buyingStores[entry.storeName] = true
+				buyAll.Text = "  Working..."
+
+				task.spawn(function()
+					local char = player.Character
+					local root = char and char:FindFirstChild("HumanoidRootPart")
+					local startCF = root and root.CFrame
+
+					local snapshot = {}
+					for _, it in ipairs(entry.shop:GetChildren()) do
+						if it:IsA("Model") then
+							table.insert(snapshot, it)
+						end
+					end
+
+					for _, it in ipairs(snapshot) do
+						if it and it.Parent then
+							pcall(buyItem, entry, it, true)
+							task.wait(0.4)
+						end
+					end
+
+					returnHome(root, startCF)
+
+					buyingStores[entry.storeName] = false
+					buyAll.Text = "  Buy ALL  —  " .. entry.storeName
+					notify("AutoBuy", "Done: " .. entry.storeName, 3)
+				end)
+			end)
+
+			for j, ve in ipairs(visibleEntries) do
+				local btn = Instance.new("TextButton", storeEntriesFrame)
+				btn.Size = UDim2.new(1, -14, 0, 22)
+				btn.BackgroundColor3 = Color3.fromRGB(50, 50, 58)
+				btn.Text = "    " .. ve.display
+				btn.TextXAlignment = Enum.TextXAlignment.Left
+				btn.TextColor3 = Color3.fromRGB(230, 230, 230)
+				btn.Font = Enum.Font.SourceSans
+				btn.TextSize = 11
+				btn.LayoutOrder = storeOrder + 100 + j
+				Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+
+				local targetKey = ve.cd or ve.name
+				btn.MouseButton1Click:Connect(function()
+					task.spawn(function()
+						buyItemMultiple(entry, targetKey, buyQuantity)
+					end)
+				end)
+			end
+		end
+
+		if order == 0 then
+			local empty = Instance.new("TextLabel", storeEntriesFrame)
+			empty.Size = UDim2.new(1, 0, 0, 0)
+			empty.AutomaticSize = Enum.AutomaticSize.Y
+			empty.BackgroundTransparency = 1
+			empty.Text = "No items match: " .. searchBox.Text
+			empty.TextColor3 = Color3.fromRGB(180, 180, 180)
+			empty.Font = Enum.Font.SourceSans
+			empty.TextSize = 12
+			empty.TextWrapped = true
+			empty.TextXAlignment = Enum.TextXAlignment.Left
+			empty.TextYAlignment = Enum.TextYAlignment.Top
+		end
+	end
+
+	searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+		pcall(rebuildAutobuy)
+	end)
+	searchBox.FocusLost:Connect(function() pcall(rebuildAutobuy) end)
+
+	refreshBtn.MouseButton1Click:Connect(rebuildAutobuy)
+	task.spawn(function()
+		task.wait(1.5)
+		pcall(rebuildAutobuy)
+	end)
+
+	--WORLD TAB
+	createToggle(pages.World, "Always Day", false, function(state)
+		if state then
+			dayLoop = RunService.RenderStepped:Connect(function() Lighting.ClockTime = 14 end)
+		elseif dayLoop then dayLoop:Disconnect() end
+	end)
+	createToggle(pages.World, "No Fog", false, function(state)
+		if state then
+			fogLoop = RunService.RenderStepped:Connect(function()
+				Lighting.FogEnd = 100000
+				for _, v in pairs(Lighting:GetChildren()) do
+					if v:IsA("Atmosphere") then
+						v.Density = 0
+						v.Offset = 0
+						v.Glare = 0
+						v.Haze = 0
+					end
+				end
+			end)
+		elseif fogLoop then fogLoop:Disconnect() end
+	end)
+	createToggle(pages.World, "Shadows", true, function(state) Lighting.GlobalShadows = state end)
+
+	createDropdown(pages.World, "Teleport: Store Spawns", storeSpawns, function(choice) teleportToSpawn(choice) end, function(v) return v.name end)
+
+	createDropdown(pages.World, "Teleport: Tree Spawns", treeSpawns, function(choice) teleportToSpawn(choice) end, function(v) return v.name end)
+
+	--MISC TAB
+	createToggle(pages.Misc, "Green Sparkles", false, function(state) toggleSparkles("Green", state) end)
+	createToggle(pages.Misc, "Purple Sparkles", false, function(state) toggleSparkles("Purple", state) end)
+	createToggle(pages.Misc, "Fire Head", false, function(state) toggleSparkles("Fire", state) end)
+	createToggle(pages.Misc, "Anti-AFK", false, function(state) if state then player.Idled:Connect(function() pcall(function() game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0), camera.CFrame) end) end) end end)
+
+	createDropdown(pages.Misc, "Follow Player Troll", function() return Players:GetPlayers() end, function(p)
+		if p then startFollow(p) end
+	end, function(p) return p.Name end)
+	createButton(pages.Misc, "Stop Following Troll", function() stopFollow() end)
+
+	createButton(pages.Misc, "Server Hop", function()
+		local success, res = pcall(function() return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")) end)
+		if success and res and res.data then
+			local found = false
+			for _, v in pairs(res.data) do if v.playing < v.maxPlayers and v.id ~= game.JobId then TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id) found = true break end end
+			if not found then notify("Server Hop", "No available server found", 3) end
+		else notify("Server Hop", "Failed to fetch servers", 3) end
+	end)
+	createButton(pages.Misc, "Rejoin Server", function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, player) end)
+
+	--MORSE NOTES (Note1, Note2, Note3)
+	local noteContainer = Instance.new("Frame", pages.Misc)
+	noteContainer.Size = UDim2.new(1, 0, 0, 0)
+	noteContainer.AutomaticSize = Enum.AutomaticSize.Y
+	noteContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+	Instance.new("UICorner", noteContainer).CornerRadius = UDim.new(0, 6)
+	local noteCPad = Instance.new("UIPadding", noteContainer)
+	noteCPad.PaddingTop = UDim.new(0, 8)
+	noteCPad.PaddingBottom = UDim.new(0, 8)
+	noteCPad.PaddingLeft = UDim.new(0, 10)
+	noteCPad.PaddingRight = UDim.new(0, 10)
+	local noteCLayout = Instance.new("UIListLayout", noteContainer)
+	noteCLayout.Padding = UDim.new(0, 6)
+	noteCLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+	local noteHeader = Instance.new("TextLabel", noteContainer)
+	noteHeader.Size = UDim2.new(1, 0, 0, 20)
+	noteHeader.BackgroundTransparency = 1
+	noteHeader.Text = "Morse Code Notes"
+	noteHeader.TextColor3 = Color3.fromRGB(220, 220, 225)
+	noteHeader.Font = Enum.Font.SourceSansBold
+	noteHeader.TextSize = 13
+	noteHeader.TextXAlignment = Enum.TextXAlignment.Left
+	noteHeader.LayoutOrder = 1
+
+	local noteBoxes = {}
+	for i = 1, 3 do
+		local box = Instance.new("Frame", noteContainer)
+		box.Size = UDim2.new(1, 0, 0, 0)
+		box.AutomaticSize = Enum.AutomaticSize.Y
+		box.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+		box.LayoutOrder = 10 + i
+		Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
+		local bp = Instance.new("UIPadding", box)
+		bp.PaddingTop = UDim.new(0, 4)
+		bp.PaddingBottom = UDim.new(0, 6)
+		bp.PaddingLeft = UDim.new(0, 8)
+		bp.PaddingRight = UDim.new(0, 8)
+		local bl = Instance.new("UIListLayout", box)
+		bl.Padding = UDim.new(0, 3)
+		bl.SortOrder = Enum.SortOrder.LayoutOrder
+
+		local title = Instance.new("TextLabel", box)
+		title.Size = UDim2.new(1, 0, 0, 16)
+		title.BackgroundTransparency = 1
+		title.Text = "Note" .. i
+		title.TextColor3 = Color3.fromRGB(200, 200, 210)
+		title.Font = Enum.Font.SourceSansBold
+		title.TextSize = 12
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.LayoutOrder = 1
+
+		local translated = Instance.new("TextLabel", box)
+		translated.Size = UDim2.new(1, 0, 0, 0)
+		translated.AutomaticSize = Enum.AutomaticSize.Y
+		translated.BackgroundTransparency = 1
+		translated.Text = "(not found)"
+		translated.TextColor3 = Color3.fromRGB(170, 255, 170)
+		translated.Font = Enum.Font.Code
+		translated.TextSize = 12
+		translated.TextWrapped = true
+		translated.TextXAlignment = Enum.TextXAlignment.Left
+		translated.TextYAlignment = Enum.TextYAlignment.Top
+		translated.LayoutOrder = 2
+
+		local raw = Instance.new("TextLabel", box)
+		raw.Size = UDim2.new(1, 0, 0, 0)
+		raw.AutomaticSize = Enum.AutomaticSize.Y
+		raw.BackgroundTransparency = 1
+		raw.Text = ""
+		raw.TextColor3 = Color3.fromRGB(140, 140, 150)
+		raw.Font = Enum.Font.Code
+		raw.TextSize = 10
+		raw.TextWrapped = true
+		raw.TextXAlignment = Enum.TextXAlignment.Left
+		raw.TextYAlignment = Enum.TextYAlignment.Top
+		raw.LayoutOrder = 3
+
+		noteBoxes[i] = { title = title, translated = translated, raw = raw }
+	end
+
+	local refreshMorseBtn = Instance.new("TextButton", noteContainer)
+	refreshMorseBtn.Size = UDim2.new(1, 0, 0, 26)
+	refreshMorseBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 90)
+	refreshMorseBtn.Text = "  Refresh Notes"
+	refreshMorseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	refreshMorseBtn.Font = Enum.Font.SourceSansBold
+	refreshMorseBtn.TextSize = 12
+	refreshMorseBtn.TextXAlignment = Enum.TextXAlignment.Left
+	refreshMorseBtn.LayoutOrder = 100
+	Instance.new("UICorner", refreshMorseBtn).CornerRadius = UDim.new(0, 4)
+
+	local function refreshMorseNotes()
+		for i = 1, 3 do
+			local rawText, storeName = findNoteText("Note" .. i)
+			local box = noteBoxes[i]
+			if rawText and rawText ~= "" then
+				box.title.Text      = "Note" .. i .. "  [" .. (storeName or "?") .. "]"
+				box.translated.Text = morseToEnglish(rawText)
+				box.raw.Text        = rawText
+			else
+				box.title.Text      = "Note" .. i
+				box.translated.Text = "(not found)"
+				box.raw.Text        = ""
+			end
+		end
+	end
+
+	refreshMorseBtn.MouseButton1Click:Connect(function()
+		pcall(refreshMorseNotes)
+		notify("Notes", "Refreshed", 2)
+	end)
+
+	task.spawn(function()
+		task.wait(1.5); pcall(refreshMorseNotes)
+		task.wait(3);   pcall(refreshMorseNotes)
+	end)
+
+	--CREDITS TAB
+	createLabel(pages.Credits, "TikTok: @albion4917")
+	createButton(pages.Credits, "Copy TikTok Link", function()
+		if Clipboard then Clipboard("https://www.tiktok.com/@albion4917")
+			notify("Credits", "TikTok link copied!", 3) end
+	end)
+	createLabel(pages.Credits, "Discord: discord.gg/FJVc4AxVRV")
+	createButton(pages.Credits, "Copy Discord Link", function()
+		if Clipboard then Clipboard("discord.gg/FJVc4AxVRV")
+			notify("Credits", "Discord link copied!", 3) end
+	end)
+
+	--CHANNEL LOG TAB
+	createLabel(pages["Channel Log"], "UPDATE LOG")
+	createLabel(pages["Channel Log"], "Script Updates Will Appear Here")
+
+	for i, entry in ipairs(CHANNEL_LOG) do
+		local card = Instance.new("Frame")
+		card.Size = UDim2.new(1, -10, 0, 0)
+		card.AutomaticSize = Enum.AutomaticSize.Y
+		card.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+		card.BorderSizePixel = 0
+		card.LayoutOrder = i
+		card.Parent = pages["Channel Log"]
+		Instance.new("UICorner", card).CornerRadius = UDim.new(0, 6)
+
+		local padding = Instance.new("UIPadding", card)
+		padding.PaddingTop = UDim.new(0, 10)
+		padding.PaddingBottom = UDim.new(0, 10)
+		padding.PaddingLeft = UDim.new(0, 12)
+		padding.PaddingRight = UDim.new(0, 12)
+
+		local title = Instance.new("TextLabel")
+		title.Size = UDim2.new(1, 0, 0, 22)
+		title.BackgroundTransparency = 1
+		title.Text = tostring(entry.title or "Update")
+		title.TextColor3 = Color3.fromRGB(255, 255, 255)
+		title.Font = Enum.Font.SourceSansBold
+		title.TextSize = 16
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.Parent = card
+
+		local date = Instance.new("TextLabel")
+		date.Size = UDim2.new(1, 0, 0, 18)
+		date.Position = UDim2.new(0, 0, 0, 22)
+		date.BackgroundTransparency = 1
+		date.Text = tostring(entry.date or "")
+		date.TextColor3 = Color3.fromRGB(160, 160, 170)
+		date.Font = Enum.Font.SourceSans
+		date.TextSize = 12
+		date.TextXAlignment = Enum.TextXAlignment.Left
+		date.Parent = card
+
+		local body = Instance.new("TextLabel")
+		body.Size = UDim2.new(1, 0, 0, 0)
+		body.Position = UDim2.new(0, 0, 0, 44)
+		body.AutomaticSize = Enum.AutomaticSize.Y
+		body.BackgroundTransparency = 1
+		body.Text = tostring(entry.text or "")
+		body.TextColor3 = Color3.fromRGB(220, 220, 225)
+		body.Font = Enum.Font.SourceSans
+		body.TextSize = 14
+		body.TextWrapped = true
+		body.TextXAlignment = Enum.TextXAlignment.Left
+		body.TextYAlignment = Enum.TextYAlignment.Top
+		body.Parent = card
+	end
+
+	notify("Morty Hub", "Loaded successfully!", 4)
+end
+
+--EXECUTE
+local success, err = pcall(BuildHub)
+if not success then
+	warn("Morty Hub failed to load: " .. tostring(err))
+end
